@@ -1,5 +1,5 @@
 
-# Created by https://www.gitignore.io/api/macos,python,eclipse
+# Created by https://www.gitignore.io/api/macos,pydev,python,eclipse
 
 ### Eclipse ###
 
@@ -86,6 +86,9 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+### pydev ###
+.pydevproject
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -190,4 +193,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# End of https://www.gitignore.io/api/macos,python,eclipse
+# End of https://www.gitignore.io/api/macos,pydev,python,eclipse

@@ -1,7 +1,7 @@
 import socket
 import sys
 import time
-import xml.dom.minidom
+#import xml.dom.minidom
 
 PORT_O   = 40698
 PORT_N   = 40700
@@ -22,20 +22,20 @@ while True:
    #time.sleep(1)
     try:
         data = s.recv(MSG_SIZE)
-	print data
-    	if not data:
-	    break
-    	else:
+        print data
+        if not data:
+            break
+        else:
             res += data
-	    if res[-1] == '\n':
-		print 'EOF'
-	        break
+        if res[-1] == '\n':
+            print 'EOF'
+            break
     except socket.error as e:
-	print 'socket error: %s' % e
-	break
+        print 'socket error: %s' % e
+    break
 
 s.close()
 
 print res
-xml = xml.dom.minidom.parseString(res)
-print xml.toprettyxml()
+#xml = xml.dom.minidom.parseString(res)
+#print xml.toprettyxml()

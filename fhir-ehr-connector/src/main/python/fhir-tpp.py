@@ -10,21 +10,21 @@ server_address = ('127.0.0.1', 40700)
 print >>sys.stderr, 'connecting to %s port %s' % server_address
 sock.connect(server_address);
 
-# XM02X
+# XM02Xza
 
 try:
     
     # Send data
     message =  '<?xml version="1.0" encoding="utf-8"?>' + \
-	'<ClientIntegrationRequest>' + \
-	'<Function>GetPatientRecord</Function>' + \
-	'<APIKey>0c6bee20cc99f13b</APIKey>' + \
-	'<RequestUID>REQUEST_ID</RequestUID>' + \
-	'<DeviceID>a824b6abdab4c355</DeviceID>' + \
-	'<DeviceVersion>1.0</DeviceVersion>' + \
-	'<FunctionVersion>1.0</FunctionVersion>' + \
-	'<FunctionParameters> <Identity> <NhsNumber>4917111072</NhsNumber> </Identity> <LeaveRecordOpen></LeaveRecordOpen> <Filter> <ClinicalCode>X3003</ClinicalCode> <ClinicalCode>XaBVJ</ClinicalCode> <Numeric>XE2mq</Numeric> </Filter> <Medication></Medication> </FunctionParameters>' + \
-	'</ClientIntegrationRequest>'
+    '<ClientIntegrationRequest>' + \
+    '<Function>GetPatientRecord</Function>' + \
+    '<APIKey>0c6bee20cc99f13b</APIKey>' + \
+    '<RequestUID>REQUEST_ID</RequestUID>' + \
+    '<DeviceID>a824b6abdab4c355</DeviceID>' + \
+    '<DeviceVersion>1.0</DeviceVersion>' + \
+    '<FunctionVersion>1.0</FunctionVersion>' + \
+    '<FunctionParameters> <Identity> <NhsNumber>4917111072</NhsNumber> </Identity> <LeaveRecordOpen></LeaveRecordOpen> <Filter> <ClinicalCode>X3003</ClinicalCode> <ClinicalCode>XaBVJ</ClinicalCode> <Numeric>XE2mq</Numeric> </Filter> <Medication></Medication> </FunctionParameters>' + \
+    '</ClientIntegrationRequest>'
     print >>sys.stderr, 'sending "%s"' % message
     sock.sendall(message.encode('utf-8'))
 
