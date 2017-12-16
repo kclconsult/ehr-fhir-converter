@@ -1,8 +1,9 @@
-import socket, sys, time, xml.dom.minidom
+import socket, sys, time, xml.dom.minidom, uuid
+from xml.sax.saxutils import escape
 from APIConstants import APIConstants
 from APIVariables import APIVariables
 
-class Utils(object):
+class Utilities(object):
     
     @staticmethod
     def xmlRequest(data):
@@ -15,13 +16,14 @@ class Utils(object):
             
             request = '<?xml version="1.0" encoding="utf-8"?>' + \
             '<ClientIntegrationRequest>' + \
+            '<RequestUID>' + str(uuid.uuid4()) + '</RequestUID>' + \
             data + \
             '</ClientIntegrationRequest>'
             
             sock.sendall(request.encode('utf-8'))
         
             sock.settimeout(20);
-            time.sleep(2)
+            time.sleep(3)
             response = sock.recv(10025)
             
             formatted = xml.dom.minidom.parseString(response)
@@ -29,5 +31,6 @@ class Utils(object):
             print pretty_xml_as_string
         
         finally:
+            
             print >>sys.stderr, 'closing socket'
             sock.close()
