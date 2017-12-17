@@ -3,9 +3,10 @@ from APIConstants import APIConstants
 from APIVariables import APIVariables
 from Utils import Utilities
 
-class TPP(object):
+class SystmOne(object):
     
-    def contactAPI(self, call, id):
+    @staticmethod
+    def contactAPI(call, id):
          
          return Utilities.xmlRequest(
              
@@ -20,7 +21,8 @@ class TPP(object):
             
         );
     
-    def getPatientRecord(self, id):
+    @staticmethod
+    def getPatientRecord(id):
         
-        print self.contactAPI("GetPatientRecord", id);
+        print SystmOne.contactAPI("GetPatientRecord", id);
        
