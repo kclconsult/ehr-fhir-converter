@@ -2,4 +2,6 @@ from TPP import TPP
 import uuid;
 
 if __name__ == "__main__":
-    TPP()
+    
+    abc = TPP()
+    abc.getPatientRecord("4917111072");
