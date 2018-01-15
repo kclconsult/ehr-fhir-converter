@@ -1,8 +1,8 @@
 import socket, sys, time, xml.dom.minidom, uuid
 
 from xml.sax.saxutils import escape
-from APIConstants import APIConstants
-from APIVariables import APIVariables
+from EHR.APIConstants import APIConstants
+from EHR.APIVariables import APIVariables
 
 class Utilities(object):
     

@@ -1,4 +1,4 @@
-from SystmOne import SystmOne
+from EHR.SystmOne import SystmOne
 import uuid;
 
 if __name__ == "__main__":

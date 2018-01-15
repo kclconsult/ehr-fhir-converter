@@ -1,6 +1,5 @@
 from mockito import mock, verify
-import unittest, sys
-sys.path.insert(0, 'src/main/python/EHR/')
+import unittest
 
 from SystmOne import SystmOne
 
