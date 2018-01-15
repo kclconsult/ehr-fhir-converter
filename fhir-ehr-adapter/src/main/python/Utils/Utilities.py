@@ -25,6 +25,7 @@ class Utilities(object):
             data + \
             '</ClientIntegrationRequest>'
             
+            print request;
             sock.sendall(request.encode('utf-8'))
         
             sock.settimeout(20);
@@ -44,12 +45,17 @@ class Utilities(object):
                 if len(part) < BUFF_SIZE:
                     break
             
+            try:
+                
+                formatted = xml.dom.minidom.parseString(response)
             
-            formatted = xml.dom.minidom.parseString(response)
+                pretty_xml_as_string = formatted.toprettyxml()
             
-            pretty_xml_as_string = formatted.toprettyxml()
+                return pretty_xml_as_string
             
-            return pretty_xml_as_string
+            except xml.parsers.expat.ExpatError:
+                
+                return "Cannot parse response. Is the EHR running?"
         
         finally:
             
