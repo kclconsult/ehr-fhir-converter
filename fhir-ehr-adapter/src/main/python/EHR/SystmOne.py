@@ -1,7 +1,7 @@
 import socket, sys, time, xml.dom.minidom
 from APIConstants import APIConstants
 from APIVariables import APIVariables
-from Utils import Utilities
+from Utils.Utilities import Utilities
 
 class SystmOne(object):
     

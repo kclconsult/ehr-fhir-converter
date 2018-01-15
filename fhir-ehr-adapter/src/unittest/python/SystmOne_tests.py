@@ -1,7 +1,9 @@
 from mockito import mock, verify
-import unittest
+import unittest,sys
 
-from SystmOne import SystmOne
+sys.path.append('src/main/python/')
+
+from EHR.SystmOne import SystmOne
 
 class SystmOneTests(unittest.TestCase):
     
