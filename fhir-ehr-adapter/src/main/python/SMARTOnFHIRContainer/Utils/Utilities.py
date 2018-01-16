@@ -6,6 +6,24 @@ from EHR.APIVariables import APIVariables
 
 class Utilities(object):
     
+    @staticmethod    
+    def printJSON(data):
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, str):
+                    print v
+                else:
+                    Utilities.printJSON(v)
+        elif isinstance(data, list):
+            for v in data:
+                if isinstance(v, str):
+                    print v
+                else:
+                    Utilities.printJSON(v)
+        else:
+            print data;
+    
+    
     @staticmethod
     def xmlRequest(data):
         

@@ -6,6 +6,7 @@ from FHIRConstants import FHIRConstants
 class FHIRServer(BaseHTTPRequestHandler):
     
     def _set_headers(self, id):
+        
         self.send_response(200)
         self.send_header('date', datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
         self.send_header('server', '')
@@ -18,7 +19,9 @@ class FHIRServer(BaseHTTPRequestHandler):
         self.send_header('location', FHIRConstants.BASE_URL + "/patient/" + str(id))
         self.end_headers()
 
-    def do_GET(self):
-        print self.path
-        self._set_headers(1234)
+    def do_GET(self): 
+        id = self.path.rsplit('/', 1)[-1];
+        self._set_headers(id)
+
+        SystmOne().getPatientRecord("4917111072");
         self.wfile.write("")
