@@ -1,8 +1,9 @@
 from BaseHTTPServer import HTTPServer
-import uuid;
+import uuid, requests
 
 from EHR.SystmOne import SystmOne
 from FHIR.FHIRServer import FHIRServer
+from FHIR.FHIRConstants import FHIRConstants
 
 if __name__ == "__main__":
     
@@ -11,5 +12,4 @@ if __name__ == "__main__":
     
     server_address = ('', 8080)
     httpd = HTTPServer(server_address, FHIRServer)
-    print 'Starting httpd...'
     httpd.serve_forever()

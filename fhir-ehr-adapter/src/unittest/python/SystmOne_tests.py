@@ -1,7 +1,7 @@
 from mockito import mock, verify
 import unittest,sys
 
-sys.path.append('src/main/python/')
+sys.path.append('src/main/python/SMARTOnFHIRContainer')
 
 from EHR.SystmOne import SystmOne
 
