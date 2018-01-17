@@ -6,20 +6,46 @@ from EHR.APIVariables import APIVariables
 
 class Utilities(object):
     
+    @staticmethod 
+    def printElementProperties(data):
+        
+        print "======================"
+        print "New class: " + data
+        print "======================"
+        
+        for x in data.elementProperties(data()):
+            invert_op = getattr(x[2], "elementProperties", None)
+            
+            if callable(invert_op) and "Extension" not in str(x[2]):
+                print x[0] + " " + str(data) + " --> " + str(x[2])
+                Utilities.printElementProperties(x[2])
+                print "======================"
+                print "Back to: " + str(data)
+                print "======================"
+                
+            else:
+                print x[0] + " " + str(x[2])
+                
     @staticmethod    
     def printJSON(data):
+        
         if isinstance(data, dict):
+            
             for k, v in data.items():
-                if isinstance(v, str):
-                    print v
+                
+                if isinstance(v, basestring):
+                    print k
+                    
                 else:
                     Utilities.printJSON(v)
+                    
         elif isinstance(data, list):
+            
             for v in data:
-                if isinstance(v, str):
-                    print v
-                else:
+                
+                if not isinstance(v, str):
                     Utilities.printJSON(v)
+                    
         else:
             print data;
     

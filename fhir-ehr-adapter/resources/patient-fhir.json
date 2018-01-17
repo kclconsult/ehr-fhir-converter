@@ -1,9 +1,38 @@
 {
   "resourceType" : "Patient",
-  "identifier" : "[{ Identifier }]", 
+  "identifier" : [{  
+	  "use" : "<code>",
+	  "type" : {
+		  "coding" : [{ 
+			  "system" : "<uri>",
+			  "version" : "<string>",
+			  "code" : "<code>",
+			  "display" : "<string>",
+			  "userSelected" : "<boolean>"
+		  }],
+		  "text" : "<string>"
+	  },
+	  "system" : "<uri>",
+	  "value" : "<string>",
+	  "period" : { Period }, // Time period when id is/was valid for use
+	  "assigner" : { Reference(Organization) } // Organization that issued id (may be just text)
+  }], 
   "active" : "<boolean>",
-  "name" : "[{ HumanName }]",
-  "telecom" : "[{ ContactPoint }]", 
+  "name" : [{
+	  "use" : "<code>",
+	  "text" : "<string>",
+	  "family" : "<string>",
+	  "given" : [ "<string>" ],
+	  "prefix" : [ "<string>" ], 
+	  "suffix" : [ "<string>" ],
+	  "period" : {  
+		  "start" : "<dateTime>",
+		  "end" : "<dateTime>"
+	  }
+  }],
+  "telecom" : [{ 
+	  
+  }], 
   "gender" : "<code>",
   "birthDate" : "<date>", 
   "deceasedBoolean" : "<boolean>",
