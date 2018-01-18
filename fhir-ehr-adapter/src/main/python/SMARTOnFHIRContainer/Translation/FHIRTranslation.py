@@ -3,17 +3,13 @@ from pprint import pprint
 
 from Utils.Utilities import Utilities
 from models.patient import Patient
-from models.humanname import HumanName
-from models.extension import Extension
-from models.address import Address
-from models.coding import Coding
 
 class FHIRTranslation():
     
     @staticmethod
     def translatePatient():
         
-        Utilities.printElementProperties(Patient)
+        print json.dumps(Utilities.JSONfromFHIRClass(Patient, True).__dict__)
         
         #p = Patient()
         #n = HumanName()
