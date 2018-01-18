@@ -1,4 +1,4 @@
-import socket, sys, time, xml.dom.minidom, uuid
+import socket, sys, time, xml.dom.minidom, uuid, json
 
 from xml.sax.saxutils import escape
 from EHR.APIConstants import APIConstants
@@ -7,24 +7,26 @@ from EHR.APIVariables import APIVariables
 class Utilities(object):
     
     @staticmethod 
-    def printElementProperties(data):
+    def JSONfromFHIRClass(FHIRClass, nullValues):
+
+        # Create new object to represent this new class.
+        FHIRObject = FHIRClass();
         
-        print "======================"
-        print "New class: " + data
-        print "======================"
-        
-        for x in data.elementProperties(data()):
-            invert_op = getattr(x[2], "elementProperties", None)
+        for attribute in FHIRClass.elementProperties(FHIRClass()):
+            invert_op = getattr(attribute[2], "elementProperties", None)
             
-            if callable(invert_op) and "Extension" not in str(x[2]):
-                print x[0] + " " + str(data) + " --> " + str(x[2])
-                Utilities.printElementProperties(x[2])
-                print "======================"
-                print "Back to: " + str(data)
-                print "======================"
-                
+            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient.
+            # Extensions classes appear in every class so don't show anything unique.
+            if callable(invert_op) and "FHIRReference" not in str(FHIRClass) and "Extension" not in str(attribute[2]):             
+                subJSON = Utilities.JSONfromFHIRClass(attribute[2], nullValues)
+                setattr(FHIRObject, attribute[0], subJSON.__dict__)
             else:
-                print x[0] + " " + str(x[2])
+                if (nullValues): 
+                    setattr(FHIRObject, attribute[0], None)
+                else:
+                    setattr(FHIRObject, attribute[0], str(attribute[2]))
+                    
+        return FHIRObject;
                 
     @staticmethod    
     def printJSON(data):
