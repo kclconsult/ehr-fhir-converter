@@ -1,69 +1,410 @@
 {
-  "resourceType" : "Patient",
-  "identifier" : [{  
-	  "use" : "<code>",
-	  "type" : {
-		  "coding" : [{ 
-			  "system" : "<uri>",
-			  "version" : "<string>",
-			  "code" : "<code>",
-			  "display" : "<string>",
-			  "userSelected" : "<boolean>"
-		  }],
-		  "text" : "<string>"
-	  },
-	  "system" : "<uri>",
-	  "value" : "<string>",
-	  "period" : { Period }, // Time period when id is/was valid for use
-	  "assigner" : { Reference(Organization) } // Organization that issued id (may be just text)
-  }], 
-  "active" : "<boolean>",
-  "name" : [{
-	  "use" : "<code>",
-	  "text" : "<string>",
-	  "family" : "<string>",
-	  "given" : [ "<string>" ],
-	  "prefix" : [ "<string>" ], 
-	  "suffix" : [ "<string>" ],
-	  "period" : {  
-		  "start" : "<dateTime>",
-		  "end" : "<dateTime>"
-	  }
-  }],
-  "telecom" : [{ 
-	  
-  }], 
-  "gender" : "<code>",
-  "birthDate" : "<date>", 
-  "deceasedBoolean" : "<boolean>",
-  "deceasedDateTime" : "<dateTime>",
-  "address" : "[{ Address }]", 
-  "maritalStatus" : "{ CodeableConcept }",
-  "multipleBirthBoolean" : "<boolean>",
-  "multipleBirthInteger" : "<integer>",
-  "photo" : "[{ Attachment }]",
-  "contact" : [{
-    "relationship" : "[{ CodeableConcept }]",
-    "name" : "{ HumanName }",
-    "telecom" : "[{ ContactPoint }]",
-    "address" : "{ Address }",
-    "gender" : "<code>",
-    "organization" : "{ Reference(Organization) }",
-    "period" : "{ Period }"
-  }],
-  "animal" : {
-    "species" : "{ CodeableConcept }",
-    "breed" : "{ CodeableConcept }", 
-    "genderStatus" : "{ CodeableConcept }"
-  },
-  "communication" : [{
-    "language" : "{ CodeableConcept }",
-    "preferred" : "<boolean>"
-  }],
-  "generalPractitioner" : "[{ Reference(Organization|Practitioner) }]",
-  "managingOrganization" : "{ Reference(Organization) }",
-  "link" : [{
-    "other" : "{ Reference(Patient|RelatedPerson) }",
-    "type" : "<code>"
-  }]
+   "generalPractitioner":{
+      "reference":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "id":"<type 'str'>",
+      "_owner":null,
+      "identifier":"<class 'models.identifier.Identifier'>",
+      "display":"<type 'str'>"
+   },
+   "telecom":{
+      "use":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "value":"<type 'str'>",
+      "system":"<type 'str'>",
+      "_owner":null,
+      "rank":"<type 'int'>",
+      "id":"<type 'str'>"
+   },
+   "photo":{
+      "contentType":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "language":"<type 'str'>",
+      "title":"<type 'str'>",
+      "url":"<type 'str'>",
+      "creation":"<class 'models.fhirdate.FHIRDate'>",
+      "_owner":null,
+      "hash":"<type 'str'>",
+      "data":"<type 'str'>",
+      "id":"<type 'str'>",
+      "size":"<type 'int'>"
+   },
+   "birthDate":"<class 'models.fhirdate.FHIRDate'>",
+   "maritalStatus":{
+      "text":"<type 'str'>",
+      "_owner":null,
+      "coding":{
+         "code":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "system":"<type 'str'>",
+         "id":"<type 'str'>",
+         "_owner":null,
+         "version":"<type 'str'>",
+         "userSelected":"<type 'bool'>",
+         "display":"<type 'str'>"
+      },
+      "id":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>"
+   },
+   "meta":{
+      "profile":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "_owner":null,
+      "lastUpdated":"<class 'models.fhirdate.FHIRDate'>",
+      "versionId":"<type 'str'>",
+      "tag":{
+         "code":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "system":"<type 'str'>",
+         "id":"<type 'str'>",
+         "_owner":null,
+         "version":"<type 'str'>",
+         "userSelected":"<type 'bool'>",
+         "display":"<type 'str'>"
+      },
+      "security":{
+         "code":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "system":"<type 'str'>",
+         "id":"<type 'str'>",
+         "_owner":null,
+         "version":"<type 'str'>",
+         "userSelected":"<type 'bool'>",
+         "display":"<type 'str'>"
+      },
+      "id":"<type 'str'>"
+   },
+   "id":"<type 'str'>",
+   "managingOrganization":{
+      "reference":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "id":"<type 'str'>",
+      "_owner":null,
+      "identifier":"<class 'models.identifier.Identifier'>",
+      "display":"<type 'str'>"
+   },
+   "modifierExtension":"<class 'models.extension.Extension'>",
+   "deceasedDateTime":"<class 'models.fhirdate.FHIRDate'>",
+   "multipleBirthInteger":"<type 'int'>",
+   "contained":{
+      "language":"<type 'str'>",
+      "_owner":null,
+      "meta":{
+         "profile":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "_owner":null,
+         "lastUpdated":"<class 'models.fhirdate.FHIRDate'>",
+         "versionId":"<type 'str'>",
+         "tag":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "security":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>"
+      },
+      "_server":null,
+      "id":"<type 'str'>",
+      "implicitRules":"<type 'str'>"
+   },
+   "animal":{
+      "genderStatus":{
+         "text":"<type 'str'>",
+         "_owner":null,
+         "coding":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "modifierExtension":"<class 'models.extension.Extension'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "breed":{
+         "text":"<type 'str'>",
+         "_owner":null,
+         "coding":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "id":"<type 'str'>",
+      "_owner":null,
+      "species":{
+         "text":"<type 'str'>",
+         "_owner":null,
+         "coding":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      }
+   },
+   "communication":{
+      "modifierExtension":"<class 'models.extension.Extension'>",
+      "language":{
+         "text":"<type 'str'>",
+         "_owner":null,
+         "coding":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "extension":"<class 'models.extension.Extension'>",
+      "preferred":"<type 'bool'>",
+      "_owner":null,
+      "id":"<type 'str'>"
+   },
+   "_server":null,
+   "multipleBirthBoolean":"<type 'bool'>",
+   "language":"<type 'str'>",
+   "link":{
+      "modifierExtension":"<class 'models.extension.Extension'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "_owner":null,
+      "other":{
+         "reference":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "id":"<type 'str'>",
+         "_owner":null,
+         "identifier":"<class 'models.identifier.Identifier'>",
+         "display":"<type 'str'>"
+      },
+      "type":"<type 'str'>",
+      "id":"<type 'str'>"
+   },
+   "address":{
+      "city":"<type 'str'>",
+      "use":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "district":"<type 'str'>",
+      "country":"<type 'str'>",
+      "_owner":null,
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "state":"<type 'str'>",
+      "text":"<type 'str'>",
+      "postalCode":"<type 'str'>",
+      "line":"<type 'str'>",
+      "type":"<type 'str'>",
+      "id":"<type 'str'>"
+   },
+   "active":"<type 'bool'>",
+   "implicitRules":"<type 'str'>",
+   "name":{
+      "_owner":null,
+      "given":"<type 'str'>",
+      "suffix":"<type 'str'>",
+      "family":"<type 'str'>",
+      "text":"<type 'str'>",
+      "use":"<type 'str'>",
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "extension":"<class 'models.extension.Extension'>",
+      "prefix":"<type 'str'>",
+      "id":"<type 'str'>"
+   },
+   "extension":"<class 'models.extension.Extension'>",
+   "gender":"<type 'str'>",
+   "deceasedBoolean":"<type 'bool'>",
+   "_owner":null,
+   "contact":{
+      "modifierExtension":"<class 'models.extension.Extension'>",
+      "name":{
+         "_owner":null,
+         "given":"<type 'str'>",
+         "suffix":"<type 'str'>",
+         "family":"<type 'str'>",
+         "text":"<type 'str'>",
+         "use":"<type 'str'>",
+         "period":{
+            "start":"<class 'models.fhirdate.FHIRDate'>",
+            "_owner":null,
+            "end":"<class 'models.fhirdate.FHIRDate'>",
+            "id":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>"
+         },
+         "extension":"<class 'models.extension.Extension'>",
+         "prefix":"<type 'str'>",
+         "id":"<type 'str'>"
+      },
+      "relationship":{
+         "text":"<type 'str'>",
+         "_owner":null,
+         "coding":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "telecom":{
+         "use":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "period":{
+            "start":"<class 'models.fhirdate.FHIRDate'>",
+            "_owner":null,
+            "end":"<class 'models.fhirdate.FHIRDate'>",
+            "id":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>"
+         },
+         "value":"<type 'str'>",
+         "system":"<type 'str'>",
+         "_owner":null,
+         "rank":"<type 'int'>",
+         "id":"<type 'str'>"
+      },
+      "gender":"<type 'str'>",
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "extension":"<class 'models.extension.Extension'>",
+      "_owner":null,
+      "address":{
+         "city":"<type 'str'>",
+         "use":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "district":"<type 'str'>",
+         "country":"<type 'str'>",
+         "_owner":null,
+         "period":{
+            "start":"<class 'models.fhirdate.FHIRDate'>",
+            "_owner":null,
+            "end":"<class 'models.fhirdate.FHIRDate'>",
+            "id":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>"
+         },
+         "state":"<type 'str'>",
+         "text":"<type 'str'>",
+         "postalCode":"<type 'str'>",
+         "line":"<type 'str'>",
+         "type":"<type 'str'>",
+         "id":"<type 'str'>"
+      },
+      "organization":{
+         "reference":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "id":"<type 'str'>",
+         "_owner":null,
+         "identifier":"<class 'models.identifier.Identifier'>",
+         "display":"<type 'str'>"
+      },
+      "id":"<type 'str'>"
+   },
+   "text":{
+      "status":"<type 'str'>",
+      "_owner":null,
+      "div":"<type 'str'>",
+      "id":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>"
+   },
+   "identifier":{
+      "use":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "assigner":{
+         "reference":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>",
+         "id":"<type 'str'>",
+         "_owner":null,
+         "identifier":"<class 'models.identifier.Identifier'>",
+         "display":"<type 'str'>"
+      },
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "value":"<type 'str'>",
+      "system":"<type 'str'>",
+      "_owner":null,
+      "type":{
+         "text":"<type 'str'>",
+         "_owner":null,
+         "coding":{
+            "code":"<type 'str'>",
+            "extension":"<class 'models.extension.Extension'>",
+            "system":"<type 'str'>",
+            "id":"<type 'str'>",
+            "_owner":null,
+            "version":"<type 'str'>",
+            "userSelected":"<type 'bool'>",
+            "display":"<type 'str'>"
+         },
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "id":"<type 'str'>"
+   }
 }
