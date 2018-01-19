@@ -1,10 +1,27 @@
 import socket, sys, time, xml.dom.minidom, uuid, json
 
 from xml.sax.saxutils import escape
+
 from EHR.APIConstants import APIConstants
 from EHR.APIVariables import APIVariables
 
 class Utilities(object):
+    
+    @staticmethod 
+    def captialToSeparation(word):
+        
+        index = 0;
+        
+        for letter in list(word):
+            
+            if index > 0 and letter.isupper():
+                word = word[0:index] + "_" + word[index:len(word)]
+                index = index + 1
+                
+            index = index + 1
+            
+        return word
+        
     
     @staticmethod 
     def JSONfromFHIRClass(FHIRClass, nullValues):
@@ -31,19 +48,29 @@ class Utilities(object):
         return FHIRObject.__dict__;
     
     @staticmethod    
-    def getReplaceJSONKeys(data, keys=set(), search=None, replace=None):
+    def getReplaceJSONKeys(data, parents=None, keys=list(), search=None, replace=None):
         
         if isinstance(data, dict):
             
             for k, v in data.items():
-                
-                keys.add(k);
+                    
+                if parents != None and len(parents) > 0:
+                    k = k + "_" + parents
+               
+                keys.append(k);
                 
                 if (k == search):
                     data[search] = replace
                 
-                if not isinstance(v, basestring) or v is None:
-                    Utilities.getReplaceJSONKeys(v, keys, search, replace)    
+                if not isinstance(v, basestring) and not v is None:
+                    if parents != None:
+                        parents = k;
+                        
+                    keys = Utilities.getReplaceJSONKeys(v, parents, keys, search, replace)
+                    
+                    if parents != None:
+                        parents = ""
+                       
                 
         return keys
     

@@ -1,0 +1,43 @@
+{
+   "birthDate":"<class 'models.fhirdate.FHIRDate'>",
+   "address":{
+      "city":"<type 'str'>",
+      "use":"<type 'str'>",
+      "extension":"<class 'models.extension.Extension'>",
+      "district":"<type 'str'>",
+      "country":"<type 'str'>",
+      "_owner":null,
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "state":"<type 'str'>",
+      "text":"<type 'str'>",
+      "postalCode":"<type 'str'>",
+      "line":"<type 'str'>",
+      "type":"<type 'str'>",
+      "id":"<type 'str'>"
+   },
+   "name":{
+      "_owner":null,
+      "given":"<type 'str'>",
+      "suffix":"<type 'str'>",
+      "family":"<type 'str'>",
+      "text":"<type 'str'>",
+      "use":"<type 'str'>",
+      "period":{
+         "start":"<class 'models.fhirdate.FHIRDate'>",
+         "_owner":null,
+         "end":"<class 'models.fhirdate.FHIRDate'>",
+         "id":"<type 'str'>",
+         "extension":"<class 'models.extension.Extension'>"
+      },
+      "extension":"<class 'models.extension.Extension'>",
+      "prefix":"<type 'str'>",
+      "id":"<type 'str'>"
+   },
+   "gender":"<type 'str'>"
+}
