@@ -15,21 +15,40 @@ class Utilities(object):
         for attribute in FHIRClass.elementProperties(FHIRClass()):
             invert_op = getattr(attribute[2], "elementProperties", None)
             
-            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient.
+            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organization from Patient).
             # Extensions classes appear in every class so don't show anything unique.
             if callable(invert_op) and "FHIRReference" not in str(FHIRClass) and "Extension" not in str(attribute[2]):             
                 subJSON = Utilities.JSONfromFHIRClass(attribute[2], nullValues)
-                setattr(FHIRObject, attribute[0], subJSON.__dict__)
+                setattr(FHIRObject, str(attribute[0]), subJSON)
+                
             else:
                 if (nullValues): 
-                    setattr(FHIRObject, attribute[0], None)
-                else:
-                    setattr(FHIRObject, attribute[0], str(attribute[2]))
+                    setattr(FHIRObject, str(attribute[0]), None)
                     
-        return FHIRObject;
-                
+                else:
+                    setattr(FHIRObject, str(attribute[0]), str(attribute[2]))
+                    
+        return FHIRObject.__dict__;
+    
     @staticmethod    
-    def printJSON(data):
+    def getReplaceJSONKeys(data, keys=set(), search=None, replace=None):
+        
+        if isinstance(data, dict):
+            
+            for k, v in data.items():
+                
+                keys.add(k);
+                
+                if (k == search):
+                    data[search] = replace
+                
+                if not isinstance(v, basestring) or v is None:
+                    Utilities.getReplaceJSONKeys(v, keys, search, replace)    
+                
+        return keys
+    
+    @staticmethod    
+    def printJSONValues(data):
         
         if isinstance(data, dict):
             
@@ -39,19 +58,18 @@ class Utilities(object):
                     print k
                     
                 else:
-                    Utilities.printJSON(v)
+                    Utilities.printJSONValues(v)
                     
         elif isinstance(data, list):
             
             for v in data:
                 
                 if not isinstance(v, str):
-                    Utilities.printJSON(v)
+                    Utilities.printJSONValues(v)
                     
         else:
             print data;
-    
-    
+            
     @staticmethod
     def xmlRequest(data):
         

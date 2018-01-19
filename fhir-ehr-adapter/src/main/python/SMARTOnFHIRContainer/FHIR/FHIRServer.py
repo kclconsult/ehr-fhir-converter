@@ -2,6 +2,7 @@ import time, datetime
 from BaseHTTPServer import BaseHTTPRequestHandler
 
 from FHIRConstants import FHIRConstants
+from Translation.FHIRTranslation import FHIRTranslation
 
 class FHIRServer(BaseHTTPRequestHandler):
     
@@ -23,5 +24,6 @@ class FHIRServer(BaseHTTPRequestHandler):
         id = self.path.rsplit('/', 1)[-1];
         self._set_headers(id)
 
-        SystmOne().getPatientRecord("4917111072");
+        # return translated patient
+        
         self.wfile.write("")
