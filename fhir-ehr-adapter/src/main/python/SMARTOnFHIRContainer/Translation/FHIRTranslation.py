@@ -9,6 +9,10 @@ from EHR.SystmOne import SystmOne
 
 class FHIRTranslation():
     
+    # Could adjust based on user feedback if, for example, matches are too generous.
+    # A user-friendly way of asking about this 'do you feel you've got too many results?'.
+    TEXT_SIMILARITY_THRESHOLD = 0.8;
+    
     @staticmethod
     def getXMLElements(root, set, childrenOnly=False):
         
@@ -51,7 +55,7 @@ class FHIRTranslation():
     # Similarity Metric C
     # Splits ehr and fhir attributes into individual words, and sees how many match. Tackles cases such as DateOfBirth and BirthDate.
     @staticmethod
-    def containsWords(ehrAttribute, fhirAttribute, similarityThreshold):
+    def wordSimilarity(ehrAttribute, fhirAttribute):
         
         matches = 0;
         
@@ -59,7 +63,7 @@ class FHIRTranslation():
             
             for fhirAttributeWord in Utilities.listFromCapitals(fhirAttribute):
                 
-                if FHIRTranslation.textSimilarity(ehrAttributeWord, fhirAttributeWord) > similarityThreshold:
+                if FHIRTranslation.textSimilarity(ehrAttributeWord, fhirAttributeWord) >= FHIRTranslation.TEXT_SIMILARITY_THRESHOLD:
                     
                     matches = matches + 1;
         
@@ -69,36 +73,46 @@ class FHIRTranslation():
     def translatePatient():
         
         # Get JSON representation of FHIR resource (Patient).
-        #patientJSON = Utilities.JSONfromFHIRClass(Patient, False);
+        patientJSON = Utilities.JSONfromFHIRClass(Patient, False);
         
         # Get patient record from EHR
         # SystmOne().getPatientRecord("4917111072");
         
-        print FHIRTranslation.containsWords("CareStartDate", "state_address", 0.6);
+        # Find mappings between EHR and FHIR (needs some sort of preference in light of multiple suggestions for the same EHR item).
+        print FHIRTranslation.similarity(FHIRTranslation.semanticSimilarity, 0.8, patientJSON);
+        print FHIRTranslation.similarity(FHIRTranslation.textSimilarity, 0.8, patientJSON);
+        print FHIRTranslation.similarity(FHIRTranslation.wordSimilarity, 0.5, patientJSON);
+        
+        # Match components of patient record from EHR to components from JSON representation
+        
+        # Replace values
+        # Utilities.getReplaceJSONKeys(patientJSON, None, list(), 'id', 'abc');
+        
+        # return.
+        #return patientJSON
+        
+    @staticmethod
+    def similarity(similarityMethod, threshold, patientJSON):
+        
+        mappings = [];
         
         # Find candidate in FHIR representation for each EHR XML attribute.
         for ehrAttribute in FHIRTranslation.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/ehr-response-extract.xml').find("Response"), set(), True):
             
-            for fhirAttribute in Utilities.getReplaceJSONKeys(json.load(open('../../../../resources/patient-fhir-extract.json')), ""):
+            highestSimilarity = -sys.maxint - 1;
+            mapping = [0] * 2;
+            
+            # json.load(open('../../../../resources/patient-fhir.json')
+            for fhirAttribute in Utilities.getReplaceJSONKeys(patientJSON, ""):
                 
-                # Order for metric importance.
-                if ( FHIRTranslation.semanticSimilarity(ehrAttribute, fhirAttribute) > 0.8 ):
-                    print ehrAttribute + " " + fhirAttribute;
-                    break;
-                
-                if ( FHIRTranslation.textSimilarity(ehrAttribute, fhirAttribute) > 0.8 ):
-                    print ehrAttribute + " " + fhirAttribute;
-                    break; 
-                
-                if ( FHIRTranslation.containsWords(ehrAttribute, fhirAttribute, 0.6) > 0.5 ):
-                    print ehrAttribute + " " + fhirAttribute;
-                    break;
-                
-        # Match components of patient record from EHR to components from JSON representation
+                if ( similarityMethod(ehrAttribute, fhirAttribute) > highestSimilarity ):
+                    
+                    mapping[0] = ehrAttribute;
+                    mapping[1] = fhirAttribute;
+                    highestSimilarity = similarityMethod(ehrAttribute, fhirAttribute);
+                   
+            if highestSimilarity > -sys.maxint - 1 and highestSimilarity > threshold:    
+                mappings.append(mapping);
         
-        # Replace values
-        #Utilities.getReplaceJSONKeys(patientJSON, None, list(), 'id', 'abc');
-        
-        # return.
-        #return patientJSON
-       
+        return mappings;
+                
