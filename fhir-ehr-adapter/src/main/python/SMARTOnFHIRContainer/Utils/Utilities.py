@@ -8,7 +8,7 @@ from EHR.APIVariables import APIVariables
 class Utilities(object):
     
     @staticmethod 
-    def captialToSeparation(word):
+    def capitalToSeparation(word):
         
         index = 0;
         
@@ -21,7 +21,11 @@ class Utilities(object):
             index = index + 1
             
         return word
+    
+    @staticmethod 
+    def listFromCapitals(word):
         
+        return Utilities.capitalToSeparation(word).split("_");
     
     @staticmethod 
     def JSONfromFHIRClass(FHIRClass, nullValues):
