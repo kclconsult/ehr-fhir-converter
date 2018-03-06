@@ -47,6 +47,7 @@ class Utilities(object):
                     
         return FHIRObject.__dict__;
     
+    # Can include parent keys (e.g. "name": { "family": ... }, becomes family_name) as this helps with similarity checks.
     @staticmethod    
     def getReplaceJSONKeys(data, parents=None, keys=list(), search=None, replace=None):
         
