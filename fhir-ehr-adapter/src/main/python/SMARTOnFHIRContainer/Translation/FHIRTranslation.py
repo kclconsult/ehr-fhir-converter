@@ -10,15 +10,20 @@ from EHR.SystmOne import SystmOne
 class FHIRTranslation():
     
     @staticmethod
-    def getXMLElements(root, set):
+    def getXMLElements(root, set, childrenOnly=False):
         
+        if childrenOnly:
+            if len(root.getchildren()) == 0:
+                set.add(root.tag);
+        else:
+            set.add(root.tag);
+    
         for elem in root.getchildren():
-            set.add(elem.tag);
-            FHIRTranslation.getXMLElements(elem, set);
+            FHIRTranslation.getXMLElements(elem, set, childrenOnly);
             
         return set
        
-    # Perhaps don't replace matches outright e.g. address (XML) matching to address (JSON) might suggest that the content of address (JSON) should be replaced with the content of address (XML), but in reality address has sub-JSON fields which are better for this e.g. postcode. Check if any children have been filled, and if they have don't replace parent?
+    # Perhaps don't replace matches outright e.g. address (XML) matching to address (JSON) might suggest that the content of address (JSON) should be replaced with the content of address (XML), but in reality address has sub-JSON fields which are better for this e.g. postcode. Check if any children have been filled, and if they have don't replace parent? -- Only looking at child elements might help with this.
     
     # Similarity Metric A
     @staticmethod
@@ -33,7 +38,7 @@ class FHIRTranslation():
         highestSimilarity = -sys.maxint - 1;
        
         # wordnet requires word separation by underscore, whereas EHR XML responses (for TPP at least) use camelCase.
-        for set in wordnet.synsets(Utilities.captialToSeparation(ehrAttribute)):
+        for set in wordnet.synsets(Utilities.capitalToSeparation(ehrAttribute)):
            
             for word in set.lemma_names():
                 
@@ -44,9 +49,21 @@ class FHIRTranslation():
         return highestSimilarity;
     
     # Similarity Metric C
-    # Split ehr and fhir attributes into individual words, and see how many match. Would tackle cases such as DateOfBirth and BirthDate.
-    def containsWords(self):
-        pass
+    # Splits ehr and fhir attributes into individual words, and sees how many match. Tackles cases such as DateOfBirth and BirthDate.
+    @staticmethod
+    def containsWords(ehrAttribute, fhirAttribute, similarityThreshold):
+        
+        matches = 0;
+        
+        for ehrAttributeWord in Utilities.listFromCapitals(ehrAttribute):
+            
+            for fhirAttributeWord in Utilities.listFromCapitals(fhirAttribute):
+                
+                if FHIRTranslation.textSimilarity(ehrAttributeWord, fhirAttributeWord) > similarityThreshold:
+                    
+                    matches = matches + 1;
+        
+        return matches / float(max(len(Utilities.listFromCapitals(ehrAttribute)), len(Utilities.listFromCapitals(fhirAttribute))));       
         
     @staticmethod
     def translatePatient():
@@ -57,11 +74,14 @@ class FHIRTranslation():
         # Get patient record from EHR
         # SystmOne().getPatientRecord("4917111072");
         
+        print FHIRTranslation.containsWords("CareStartDate", "state_address", 0.6);
+        
         # Find candidate in FHIR representation for each EHR XML attribute.
-        for ehrAttribute in FHIRTranslation.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/ehr-response-extract.xml').find("Response"), set()):
+        for ehrAttribute in FHIRTranslation.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/ehr-response-extract.xml').find("Response"), set(), True):
             
             for fhirAttribute in Utilities.getReplaceJSONKeys(json.load(open('../../../../resources/patient-fhir-extract.json')), ""):
                 
+                # Order for metric importance.
                 if ( FHIRTranslation.semanticSimilarity(ehrAttribute, fhirAttribute) > 0.8 ):
                     print ehrAttribute + " " + fhirAttribute;
                     break;
@@ -70,7 +90,10 @@ class FHIRTranslation():
                     print ehrAttribute + " " + fhirAttribute;
                     break; 
                 
-            
+                if ( FHIRTranslation.containsWords(ehrAttribute, fhirAttribute, 0.6) > 0.5 ):
+                    print ehrAttribute + " " + fhirAttribute;
+                    break;
+                
         # Match components of patient record from EHR to components from JSON representation
         
         # Replace values
