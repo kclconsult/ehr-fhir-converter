@@ -1,6 +1,8 @@
 import json, inspect, collections, xml.etree.ElementTree, sys
 from pprint import pprint
 from difflib import SequenceMatcher
+import Levenshtein
+from fuzzywuzzy import fuzz
 from nltk.corpus import wordnet
 
 from Utils.Utilities import Utilities
@@ -20,14 +22,14 @@ class FHIRTranslation():
     # Similarity Metric A
     @staticmethod
     def textSimilarity(ehrAttribute, fhirAttribute):
-        return SequenceMatcher(None, ehrAttribute, fhirAttribute).ratio()
+        return fuzz.partial_ratio(ehrAttribute, fhirAttribute) / 100.0;
     
     # Similarity Metric B
     @staticmethod
     def semanticSimilarity(ehrAttribute, fhirAttribute):
         
         # https://docs.python.org/2/library/sys.html#sys.maxint
-        highestSimilarity = -sys.maxint - 1;
+        highestSimilarity = 0;
        
         # wordnet requires word separation by underscore, whereas EHR XML responses (for TPP at least) use camelCase.
         for set in wordnet.synsets(Utilities.capitalToSeparation(ehrAttribute)):
@@ -35,7 +37,8 @@ class FHIRTranslation():
             for word in set.lemma_names():
                 
                 # Get similarity between synonym for ehrAttribute and fhirAttribute. If this is over a given threshold, mark as a semantic match.
-                if FHIRTranslation.textSimilarity(word, fhirAttribute) > highestSimilarity:
+                if word != ehrAttribute and FHIRTranslation.textSimilarity(word, fhirAttribute) > highestSimilarity:
+                    
                     highestSimilarity = FHIRTranslation.textSimilarity(word, fhirAttribute);
         
         return highestSimilarity;
@@ -61,7 +64,7 @@ class FHIRTranslation():
     @staticmethod
     def grammaticalSimilarity(ehrAttribute, fhirAttribute):
         
-        highestSimilarity = -sys.maxint - 1;
+        highestSimilarity = 0;
         
         for lemma in Utilities.lemmas(ehrAttribute):
             
@@ -77,7 +80,7 @@ class FHIRTranslation():
     @staticmethod
     def wordGrammaticalSimilarty(ehrAttribute, fhirAttribute):
         
-        highestSimilarity = -sys.maxint - 1;
+        highestSimilarity = 0;
         
         for form in Utilities.differentWordForms(ehrAttribute):
             
@@ -86,26 +89,48 @@ class FHIRTranslation():
                 highestSimilarity = FHIRTranslation.wordSimilarity(form, fhirAttribute);
         
         return highestSimilarity;
+    
+    ##########
+    
+    # Combination Mechanism A
+    @staticmethod
+    def averageSimilarity(ehrClass, fhirClass):
+        
+        # Add all similarities together, divide to get between 0 and 1.
+        return (FHIRTranslation.textSimilarity(ehrClass, fhirClass) + FHIRTranslation.semanticSimilarity(ehrClass, fhirClass) + FHIRTranslation.wordSimilarity(ehrClass, fhirClass) + FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass) + FHIRTranslation.wordGrammaticalSimilarty(ehrClass, fhirClass)) / 5.0;
+        
+    # Combination Mechanism B
+    @staticmethod
+    def maxSimilarity(ehrClass, fhirClass):
+        
+        return max(FHIRTranslation.textSimilarity(ehrClass, fhirClass), max(FHIRTranslation.semanticSimilarity(ehrClass, fhirClass), max(FHIRTranslation.wordSimilarity(ehrClass, fhirClass), max(FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass), FHIRTranslation.wordGrammaticalSimilarty(ehrClass, fhirClass)))));
         
     @staticmethod
     def translatePatient():
+        
+        #print FHIRTranslation.textSimilarity("identity", "patient");
+        
+        FHIRTranslation.translatePatient2();
+         
+    @staticmethod
+    def translatePatient2():
         
         # Get JSON representation of FHIR resource (Patient).
         # Testing: json.load(open('../../../../resources/patient-fhir.json')
         # patientJSON = Utilities.JSONfromFHIRClass(Patient, False);
 
+        
         # Find classes, and then match within those classes.
         for ehrClass in Utilities.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/tpp.xml').find("Response"), set(), False, True):
             
+            print ehrClass
             for _, fhirClass, _ in pkgutil.iter_modules(['models']):
                 
-                # Add all similarities together, divide to get between 0 and 1.
-                totalSimilarity = (FHIRTranslation.textSimilarity(ehrClass, fhirClass) + FHIRTranslation.semanticSimilarity(ehrClass, fhirClass) + FHIRTranslation.wordSimilarity(ehrClass, fhirClass) + FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass));
+                overallSimilarity = FHIRTranslation.averageSimilarity(ehrClass, fhirClass);
                 
-                if FHIRTranslation.wordGrammaticalSimilarty(ehrClass, fhirClass) >= 0.5:
-                    print ehrClass + " " + fhirClass + " " + str(totalSimilarity);
-                   
-            
+                if overallSimilarity >= 0.5:
+                    print ehrClass + " " + fhirClass + " " + str(overallSimilarity);
+           
         # Get patient record from EHR
         # SystmOne().getPatientRecord("4917111072");
         
