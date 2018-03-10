@@ -1,11 +1,57 @@
-import socket, sys, time, xml.dom.minidom, uuid, json
+import socket, sys, time, xml.dom.minidom, uuid, json, inspect
 
 from xml.sax.saxutils import escape
 
 from EHR.APIConstants import APIConstants
 from EHR.APIVariables import APIVariables
+from nltk.corpus import wordnet
 
 class Utilities(object):
+    
+    # Find different grammatical forms of words in camelcase string.
+    @staticmethod
+    def differentWordForms(wordsInString):
+        
+        replacements = set();
+        
+        for word in Utilities.listFromCapitals(wordsInString):
+            
+            for lemma in Utilities.lemmas(word):
+                
+                replacement = wordsInString.replace(word, lemma.title());
+                replacements.add(replacement);
+        
+        return replacements;
+                
+    @staticmethod
+    def lemmas(word):
+        
+        lemmas = set();
+        
+        for lemma in wordnet.lemmas(word):
+            
+            for related_lemma in lemma.derivationally_related_forms():
+                
+                lemmas.add(related_lemma.name());
+        
+        return lemmas;
+                
+    @staticmethod
+    def getXMLElements(root, set, childrenOnly=False, parentsOnly=False):
+        
+        if childrenOnly:
+            if len(root.getchildren()) == 0:
+                set.add(root.tag);
+        if parentsOnly:
+            if len(root.getchildren()) > 0:
+                set.add(root.tag);
+        else:
+            set.add(root.tag);
+    
+        for elem in root.getchildren():
+            Utilities.getXMLElements(elem, set, childrenOnly, parentsOnly);
+            
+        return set
     
     @staticmethod 
     def capitalToSeparation(word):
@@ -30,13 +76,13 @@ class Utilities(object):
     @staticmethod 
     def JSONfromFHIRClass(FHIRClass, nullValues):
 
-        # Create new object to represent this new class.
+        # Create new object to represent this class.
         FHIRObject = FHIRClass();
         
         for attribute in FHIRClass.elementProperties(FHIRClass()):
             invert_op = getattr(attribute[2], "elementProperties", None)
             
-            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organization from Patient).
+            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
             if callable(invert_op) and "FHIRReference" not in str(FHIRClass) and "Extension" not in str(attribute[2]):             
                 subJSON = Utilities.JSONfromFHIRClass(attribute[2], nullValues)
