@@ -22,7 +22,7 @@ class FHIRTranslation():
     # Similarity Metric A
     @staticmethod
     def textSimilarity(ehrAttribute, fhirAttribute):
-        return fuzz.partial_ratio(ehrAttribute, fhirAttribute) / 100.0;
+        return fuzz.ratio(ehrAttribute, fhirAttribute) / 100.0;
     
     # Similarity Metric B
     @staticmethod
@@ -37,30 +37,13 @@ class FHIRTranslation():
             for word in set.lemma_names():
                 
                 # Get similarity between synonym for ehrAttribute and fhirAttribute. If this is over a given threshold, mark as a semantic match.
-                if word != ehrAttribute and FHIRTranslation.textSimilarity(word, fhirAttribute) > highestSimilarity:
+                if not word == ehrAttribute and FHIRTranslation.textSimilarity(word, fhirAttribute) > highestSimilarity:
                     
                     highestSimilarity = FHIRTranslation.textSimilarity(word, fhirAttribute);
-        
-        return highestSimilarity;
-    
-    # Similarity Metric C
-    # Splits ehr and fhir attributes into individual words, and sees how many match. Tackles cases such as DateOfBirth and BirthDate.
-    @staticmethod
-    def wordSimilarity(ehrAttribute, fhirAttribute):
-        
-        matches = 0;
-        
-        for ehrAttributeWord in Utilities.listFromCapitals(ehrAttribute):
-            
-            for fhirAttributeWord in Utilities.listFromCapitals(fhirAttribute):
-                
-                if FHIRTranslation.textSimilarity(ehrAttributeWord, fhirAttributeWord) >= FHIRTranslation.TEXT_SIMILARITY_THRESHOLD:
                     
-                    matches = matches + 1;
-        
-        return matches / float(max(len(Utilities.listFromCapitals(ehrAttribute)), len(Utilities.listFromCapitals(fhirAttribute))));       
+        return highestSimilarity;    
      
-    # Similarity Metric D
+    # Similarity Metric C
     @staticmethod
     def grammaticalSimilarity(ehrAttribute, fhirAttribute):
         
@@ -74,22 +57,6 @@ class FHIRTranslation():
                     
         return highestSimilarity;
     
-    # Similarity Metric E
-    # Finds different grammatical forms of the words in compound (CamelCase) EHR attributes and then uses
-    # wordSimilarity to compare (essentially makes the wordSimilarity metric more flexible).
-    @staticmethod
-    def wordGrammaticalSimilarty(ehrAttribute, fhirAttribute):
-        
-        highestSimilarity = 0;
-        
-        for form in Utilities.differentWordForms(ehrAttribute):
-            
-            if FHIRTranslation.wordSimilarity(form, fhirAttribute) > highestSimilarity:
-                
-                highestSimilarity = FHIRTranslation.wordSimilarity(form, fhirAttribute);
-        
-        return highestSimilarity;
-    
     ##########
     
     # Combination Mechanism A
@@ -97,38 +64,60 @@ class FHIRTranslation():
     def averageSimilarity(ehrClass, fhirClass):
         
         # Add all similarities together, divide to get between 0 and 1.
-        return (FHIRTranslation.textSimilarity(ehrClass, fhirClass) + FHIRTranslation.semanticSimilarity(ehrClass, fhirClass) + FHIRTranslation.wordSimilarity(ehrClass, fhirClass) + FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass) + FHIRTranslation.wordGrammaticalSimilarty(ehrClass, fhirClass)) / 5.0;
+        return (FHIRTranslation.textSimilarity(ehrClass, fhirClass) + 
+                FHIRTranslation.semanticSimilarity(ehrClass, fhirClass) + 
+                FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass)) / 3.0;
         
     # Combination Mechanism B
     @staticmethod
     def maxSimilarity(ehrClass, fhirClass):
         
-        return max(FHIRTranslation.textSimilarity(ehrClass, fhirClass), max(FHIRTranslation.semanticSimilarity(ehrClass, fhirClass), max(FHIRTranslation.wordSimilarity(ehrClass, fhirClass), max(FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass), FHIRTranslation.wordGrammaticalSimilarty(ehrClass, fhirClass)))));
+        return max(FHIRTranslation.textSimilarity(ehrClass, fhirClass), 
+               max(FHIRTranslation.semanticSimilarity(ehrClass, fhirClass), FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass)));
+    
+    ##########
+    
+    @staticmethod
+    def overallSimilarity(fhirClass, ehrClass):
         
+        # If ehrClass string is composite, compare each word with the FHIR target using all of the metrics, and 
+        # then use chosen combination method to produce a value.
+        # For each word, add these values, and then divide by number of words to get an average match across all words (or max?).
+        totalWordSimilarity = 0;
+        
+        words = Utilities.listFromCapitals(ehrClass);
+        
+        for word in words:
+            
+            totalWordSimilarity = totalWordSimilarity + FHIRTranslation.maxSimilarity(word, fhirClass);
+        
+        # Average similarity across words.
+        return totalWordSimilarity / float(len(words)); 
+    
+    @staticmethod
+    def translatePatientInit():
+        
+        #print FHIRTranslation.textSimilarity("medicament", "age");
+        
+        FHIRTranslation.translatePatient();
+               
     @staticmethod
     def translatePatient():
-        
-        #print FHIRTranslation.textSimilarity("identity", "patient");
-        
-        FHIRTranslation.translatePatient2();
-         
-    @staticmethod
-    def translatePatient2():
         
         # Get JSON representation of FHIR resource (Patient).
         # Testing: json.load(open('../../../../resources/patient-fhir.json')
         # patientJSON = Utilities.JSONfromFHIRClass(Patient, False);
 
-        
         # Find classes, and then match within those classes.
         for ehrClass in Utilities.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/tpp.xml').find("Response"), set(), False, True):
             
             print ehrClass
+            
             for _, fhirClass, _ in pkgutil.iter_modules(['models']):
                 
-                overallSimilarity = FHIRTranslation.averageSimilarity(ehrClass, fhirClass);
+                overallSimilarity = FHIRTranslation.overallSimilarity(fhirClass, ehrClass)
                 
-                if overallSimilarity >= 0.5:
+                if overallSimilarity >= 0.7:
                     print ehrClass + " " + fhirClass + " " + str(overallSimilarity);
            
         # Get patient record from EHR
