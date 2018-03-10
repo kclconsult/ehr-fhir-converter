@@ -71,7 +71,12 @@ class Utilities(object):
     @staticmethod 
     def listFromCapitals(word):
         
-        return Utilities.capitalToSeparation(word).split("_");
+        withSeparators = Utilities.capitalToSeparation(word);
+        
+        if "_" not in withSeparators:
+            return [word];
+        else:
+            return Utilities.capitalToSeparation(word).split("_");
     
     @staticmethod 
     def JSONfromFHIRClass(FHIRClass, nullValues):
