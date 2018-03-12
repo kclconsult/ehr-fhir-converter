@@ -39,16 +39,17 @@ class Utilities(object):
     @staticmethod
     def getXMLElements(root, set, childrenOnly=False, parentsOnly=False):
         
-        if childrenOnly:
-            if len(root.getchildren()) == 0:
-                set.add(root.tag);
-        if parentsOnly:
-            if len(root.getchildren()) > 0:
-                set.add(root.tag);
-        else:
-            set.add(root.tag);
-    
         for elem in root.getchildren():
+            
+            if childrenOnly:
+                if len(elem.getchildren()) == 0:
+                    set.add(elem.tag);
+            if parentsOnly:
+                if len(elem.getchildren()) > 0:
+                    set.add(elem.tag);
+            else:
+                set.add(elem.tag);
+            
             Utilities.getXMLElements(elem, set, childrenOnly, parentsOnly);
             
         return set
