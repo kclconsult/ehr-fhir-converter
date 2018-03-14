@@ -22,6 +22,17 @@ class FHIRTranslation():
     
     GRAMMATICAL_SIMILARITY_THRESHOLD = 0.5;
     
+    OVERALL_SIMILARITY_THRESHOLD = 0.95;
+    
+    # If some metrics are too generous (e.g. semantic matching 'address' and 'reference'), then we can reduce their 'contribution' to the measure of similarity using a weighting.
+    TEXT_SIMILARITY_WEIGHTING = 1;
+    
+    SEMANTIC_SIMILARITY_WEIGHTING = 0.8;
+    
+    GRAMMATICAL_SIMILARITY_WEIGHTING = 0.6;
+    
+    
+    
     # Perhaps don't replace matches outright e.g. address (XML) matching to address (JSON) might suggest that the content of address (JSON) should be replaced with the content of address (XML), but in reality address has sub-JSON fields which are better for this e.g. postcode. Check if any children have been filled, and if they have don't replace parent? -- Only looking at child elements might help with this.
     
     # Similarity Metric A
@@ -84,7 +95,7 @@ class FHIRTranslation():
         # If ehrClass string is composite, compare each word with the FHIR target using all of the metrics, and 
         # then use chosen combination method to produce a value.
         # For each word, add these values, and then divide by number of words to get an average match across all words (or max?).
-        totalWordSimilarity = 0;
+        highestSimilarity = 0;
         
         ehrWords = Utilities.listFromCapitals(ehrClass);
         fhirWords = Utilities.listFromCapitals(fhirClass);
@@ -93,9 +104,11 @@ class FHIRTranslation():
             
             for fhirWord in fhirWords:
             
-                totalWordSimilarity = totalWordSimilarity + comparisonMethod(ehrWord, fhirWord);
-          
-        return totalWordSimilarity / (len(ehrWords) * len(fhirWords));
+                if( comparisonMethod(ehrWord, fhirWord) > highestSimilarity ):
+                    
+                    highestSimilarity = comparisonMethod(ehrWord, fhirWord);
+
+        return highestSimilarity;
     
     @staticmethod
     def translatePatient():
@@ -113,7 +126,12 @@ class FHIRTranslation():
         # Get JSON representation of FHIR resource (Patient).
         # Testing: json.load(open('../../../../resources/patient-fhir.json')
         # patientJSON = Utilities.JSONfromFHIRClass(Patient, False);
-
+        
+        # Get patient record from EHR
+        # SystmOne().getPatientRecord("4917111072");
+        
+        # Match components of patient record from EHR to components from JSON representation
+        
         # Find classes, and then match within those classes.
         for ehrClass in Utilities.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/tpp.xml').find("Response"), set(), False, True):
             
@@ -121,27 +139,21 @@ class FHIRTranslation():
                 
                 for fhirClass in pyclbr.readmodule("models." + fhirModule).keys():
                     
-                    if (FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.textSimilarity) >= FHIRTranslation.TEXT_SIMILARITY_THRESHOLD or 
-                        FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.semanticSimilarity) >= FHIRTranslation.SEMANTIC_SIMILARITY_THRESHOLD or 
-                        FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.grammaticalSimilarity) >= FHIRTranslation.GRAMMATICAL_SIMILARITY_THRESHOLD):
+                    # Different threshold if two words (less strict).
+                    # Single threshold for all
+                    if (FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.textSimilarity) * FHIRTranslation.TEXT_SIMILARITY_WEIGHTING >= FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD or 
+                        FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.semanticSimilarity) * FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING >= FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD or 
+                        FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.grammaticalSimilarity) * FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING >= FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD):
                         
                         print ehrClass + " " + fhirClass + " (" + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.textSimilarity)) + " " + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.semanticSimilarity)) + " " + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.grammaticalSimilarity)) + ")";
-       
-        # Get patient record from EHR
-        # SystmOne().getPatientRecord("4917111072");
-        
-        # Find mappings between EHR and FHIR (needs some sort of preference in light of multiple suggestions for the same EHR item).
-        # print FHIRTranslation.map(FHIRTranslation.semanticSimilarity, 0.8, patientJSON);
-        # print FHIRTranslation.map(FHIRTranslation.textSimilarity, 0.8, patientJSON);
-        # print FHIRTranslation.map(FHIRTranslation.wordSimilarity, 0.5, patientJSON);
-        
-        # Match components of patient record from EHR to components from JSON representation
-        
+                
+                # If there are multiple matches, e.g. with medication, NOW find which candidate class can house the attributes from the EHR header best.
+              
         # Replace values
         # Utilities.getReplaceJSONKeys(patientJSON, None, list(), 'id', 'abc');
         
         # return.
-        #return patientJSON
+        # return patientJSON
       
     @staticmethod
     def map(similarityMethod, threshold, patientJSON):
