@@ -1,10 +1,12 @@
 import socket, sys, time, xml.dom.minidom, uuid, json, inspect
 
 from xml.sax.saxutils import escape
+from nltk.corpus import wordnet
 
 from EHR.APIConstants import APIConstants
 from EHR.APIVariables import APIVariables
-from nltk.corpus import wordnet
+
+import unittest
 
 class Utilities(object):
     
@@ -35,22 +37,60 @@ class Utilities(object):
                 lemmas.add(related_lemma.name());
         
         return lemmas;
-                
+    
+    # NB. FHIR is not hierarchical.
     @staticmethod
-    def getXMLElements(root, set, childrenOnly=False, parentsOnly=False):
+    def getFHIRElements(root, set, children=True, parents=True, recurse=True):
+        
+        # Ignore test classes.
+        if ( unittest.TestCase in inspect.getmro(root) ): return;
+        
+         # Create new object to represent this class.
+        FHIRObject = root();
+        
+        # Don't examine classes that don't use the 'elementsProperties' approach to list attributes.
+        if ( not callable(getattr(root, "elementProperties", None)) ): return;
+         
+        for attributeContainer in root.elementProperties(root()):
+            
+            attribute = getattr(attributeContainer[2], "elementProperties", None)
+            
+            if children:
+                if not callable(attribute):
+                    set.add(attributeContainer[0]);
+                    
+            if parents:
+                if callable(attribute):
+                    set.add(attributeContainer[0]);
+                    
+            else:
+                set.add(attributeContainer[0]);
+            
+            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
+            # Extensions classes appear in every class so don't show anything unique.
+            if recurse and callable(attribute) and "FHIRReference" not in str(FHIRClass) and "Extension" not in str(attribute[2]):
+                
+                Utilities.getFHIRElements(elem, set, children, parents, recurse);
+                   
+        return set;
+       
+    @staticmethod
+    def getXMLElements(root, set, children=True, parents=True, recurse=True):
         
         for elem in root.getchildren():
             
-            if childrenOnly:
+            if children:
                 if len(elem.getchildren()) == 0:
                     set.add(elem.tag);
-            if parentsOnly:
+                    
+            if parents:
                 if len(elem.getchildren()) > 0:
                     set.add(elem.tag);
+                    
             else:
                 set.add(elem.tag);
             
-            Utilities.getXMLElements(elem, set, childrenOnly, parentsOnly);
+            if ( recurse ): Utilities.getXMLElements(elem, set, children, parents, recurse);
             
         return set
     
@@ -79,6 +119,7 @@ class Utilities(object):
         else:
             return Utilities.capitalToSeparation(word).split("_");
     
+    # NB. FHIR is not a hierarchy.
     @staticmethod 
     def JSONfromFHIRClass(FHIRClass, nullValues):
 
