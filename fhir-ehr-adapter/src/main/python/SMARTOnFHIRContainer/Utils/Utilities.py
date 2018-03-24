@@ -8,6 +8,8 @@ from EHR.APIVariables import APIVariables
 
 import unittest
 
+import models.codesystem;
+
 class Utilities(object):
     
     # Find different grammatical forms of words in camelcase string.
@@ -42,6 +44,9 @@ class Utilities(object):
     @staticmethod
     def getFHIRElements(root, set, children=True, parents=True, recurse=True):
         
+        # Convert string to class, if not class
+        if ( not inspect.isclass(root) ): root = eval(root);
+        
         # Ignore test classes.
         if ( unittest.TestCase in inspect.getmro(root) ): return;
         
@@ -73,19 +78,21 @@ class Utilities(object):
                 Utilities.getFHIRElements(elem, set, children, parents, recurse);
                    
         return set;
-       
+    
     @staticmethod
-    def getXMLElements(root, set, children=True, parents=True, recurse=True):
+    def getXMLElements(root, set, children=True, parents=True, recurse=True, attributes=False):
         
         for elem in root.getchildren():
             
             if children:
                 if len(elem.getchildren()) == 0:
                     set.add(elem.tag);
+                    if (attributes): set = set.union(elem.attrib.keys());
                     
             if parents:
                 if len(elem.getchildren()) > 0:
                     set.add(elem.tag);
+                    if (attributes): set = set.union(elem.attrib.keys());
                     
             else:
                 set.add(elem.tag);
