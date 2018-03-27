@@ -50,6 +50,7 @@ class Utilities(object):
         # Ignore test classes.
         if ( unittest.TestCase in inspect.getmro(root) ): return;
         
+        print root;
          # Create new object to represent this class.
         FHIRObject = root();
         
