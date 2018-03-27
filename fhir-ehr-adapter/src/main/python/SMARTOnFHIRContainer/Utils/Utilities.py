@@ -44,20 +44,27 @@ class Utilities(object):
     @staticmethod
     def getFHIRElements(root, set, children=True, parents=True, recurse=True):
         
-        # Convert string to class, if not class
+        # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
         
         # Ignore test classes.
-        if ( unittest.TestCase in inspect.getmro(root) ): return;
-        
-        print root;
-         # Create new object to represent this class.
-        FHIRObject = root();
+        if ( unittest.TestCase in inspect.getmro(root) or Exception in inspect.getmro(root) ): return;
         
         # Don't examine classes that don't use the 'elementsProperties' approach to list attributes.
         if ( not callable(getattr(root, "elementProperties", None)) ): return;
-         
-        for attributeContainer in root.elementProperties(root()):
+        
+        # Attributes of this class and parents.
+        attributes = root.elementProperties(root());
+        
+        # List of parents (first element in tuple is this class).
+        parents = inspect.getmro(root)[1:]
+        
+        for parent in parents: 
+            if ( not callable(getattr(parent, "elementProperties", None)) ): continue;
+            attributes = [item for item in attributes if item not in parent.elementProperties(parent())]
+        
+        # For all attributes of this class (minus attributes of parent, which are typically generic).
+        for attributeContainer in attributes:
             
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             
