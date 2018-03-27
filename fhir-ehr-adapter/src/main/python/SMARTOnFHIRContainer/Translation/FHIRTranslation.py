@@ -38,8 +38,6 @@ class FHIRTranslation():
     
     GRAMMATICAL_SIMILARITY_WEIGHTING = 0.6;
     
-    # Perhaps don't replace matches outright e.g. address (XML) matching to address (JSON) might suggest that the content of address (JSON) should be replaced with the content of address (XML), but in reality address has sub-JSON fields which are better for this e.g. postcode. Check if any children have been filled, and if they have don't replace parent? -- Only looking at child elements might help with this.
-    
     # Similarity Metric A
     @staticmethod
     def textSimilarity(ehrAttribute, fhirAttribute, stem=True):
@@ -149,7 +147,7 @@ class FHIRTranslation():
         
         if ( fhirClassChildren == None ): return 0;
             
-        # For each child of the EHR parent (need to also include ATTRIBUTES (same tag) of EHR parent and children).
+        # For each child of the EHR parent (also includes ATTRIBUTES (same tag) of EHR parent and children).
         for ehrClassChild in ehrClassChildren:
             
             # Look at that FHIR classes children
@@ -189,7 +187,6 @@ class FHIRTranslation():
         ehrFHIRMatches = {};
         
         # Find classes, and then match within those classes.
-        # Don't just want to look at names of elements, also attributes (e.g. in Vision response)..
         for ehrClass in Utilities.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/tpp.xml').find("Response"), set(), False):
             
             ehrFHIRMatches[ehrClass] = [];
@@ -211,8 +208,7 @@ class FHIRTranslation():
                         
                         #print ehrClass + " " + fhirClass + " (" + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.textSimilarity)) + " " + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.semanticSimilarity)) + " " + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.grammaticalSimilarity)) + ")";
                 
-        # If there are multiple matches, e.g. with medication, NOW find which candidate class can house the attributes from the EHR header best.
-        
+        # If there are multiple matches, e.g. with medication, NOW find which candidate class can house the attributes from the EHR header best:
         # For each EHR parent       
         for ehrClass in ehrFHIRMatches:
             
@@ -240,11 +236,10 @@ class FHIRTranslation():
             
             ehrFHIRMatches[ehrClass] = fhirClassMatches;
                          
-            #print highestChildSimilarityClasses;    
-        
         for ehrClass in ehrFHIRMatches:
             
             print ehrClass;
+            # Order by child similarity, then parent similarity, and then finally by parent text similarity.
             matches = sorted(ehrFHIRMatches[ehrClass], key=lambda x: (x[3], x[2], x[1]), reverse=True);
             
             if len(matches):
