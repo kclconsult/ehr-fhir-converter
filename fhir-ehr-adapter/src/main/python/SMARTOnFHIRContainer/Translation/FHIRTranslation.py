@@ -6,7 +6,7 @@ from nltk.stem.porter import PorterStemmer
 import pkgutil
 import pyclbr;
 
-from models.patient import Patient
+#from models.patient import Patient
 import models;
 
 from EHR.SystmOne import SystmOne
@@ -15,6 +15,10 @@ from Utils.Utilities import Utilities
 import importlib;
 
 class FHIRTranslation():
+    
+    MODELS_PATH = "models";
+    
+    EHR_PATH = "tpp";
     
     # Could adjust based on user feedback if, for example, matches are too generous.
     # A user-friendly way of asking about this 'do you feel you've got too many results?'.
@@ -29,7 +33,11 @@ class FHIRTranslation():
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95;
     
+    # Might want to be more generous with child matches.
     OVERALL_CHILD_SIMILARITY_THRESHOLD = 0.8;
+    
+    # The portion of child fields in an EHR tag that must be housed by a FHIR class in order to consider that class a match.
+    CHILD_MATCH_THRESHOLD = 0.5
     
     # If some metrics are too generous (e.g. semantic matching 'address' and 'reference'), then we can reduce their 'contribution' to the measure of similarity using a weighting.
     TEXT_SIMILARITY_WEIGHTING = 1;
@@ -115,37 +123,53 @@ class FHIRTranslation():
     
     # Return the match value.
     @staticmethod
-    def match(ehr, fhir, threshold=OVERALL_SIMILARITY_THRESHOLD):
+    def match(ehr, fhir, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD):
         
-        if (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity) * FHIRTranslation.TEXT_SIMILARITY_WEIGHTING >= threshold):
+        if (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity) * FHIRTranslation.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
             return FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity);
-        elif (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity) * FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING >= threshold):
+        elif (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity) * FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING >= semanticSimilarityThreshold):
             return FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity);
-        elif (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity) * FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING >= threshold):
+        elif (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity) * FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING >= grammaticalSimilarityThreshold):
             return FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity);
         else:
             return 0;
     
     # See if there is a match at all, based on thresholds.
     @staticmethod
-    def matches(ehr, fhir, threshold=OVERALL_SIMILARITY_THRESHOLD):
+    def matches(ehr, fhir, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD):
         
-        if (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity) * FHIRTranslation.TEXT_SIMILARITY_WEIGHTING >= threshold or 
-        FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity) * FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING >= threshold or 
-        FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity) * FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING >= threshold):
+        if (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity) * FHIRTranslation.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold or 
+        FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity) * FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING >= semanticSimilarityThreshold or 
+        FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity) * FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING >= grammaticalSimilarityThreshold):
         
             return True;
     
     @staticmethod
-    def childSimilarity(ehrClass, fhirClass):
+    def getEHRClassChildren(xml, ehrClass):
+        return Utilities.getXMLElements(xml.find(".//" + ehrClass), set(), True, True, False, True);
+    
+    @staticmethod
+    def getFHIRClassChildren(fhirClass):
+        return Utilities.getFHIRElements(fhirClass, set(), True, True, False);
+    
+    @staticmethod
+    def childSimilarity(ehrClass, fhirClass, ehrClassesToChildren=None, fhirClassesToChildren=None):
         
-        ehrClassChildren = Utilities.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/tpp.xml').find(".//" + ehrClass), set(), True, True, False, True);
+        if ( ehrClassesToChildren ):
+            ehrClassChildren = ehrClassesToChildren[ehrClass];
+        else:
+            ehrClassChildren = getEHRClassChildren(ehrClass);
         
-        fhirClassChildren = Utilities.getFHIRElements(fhirClass, set(), True, True, False);
+        if ( fhirClassesToChildren ):
+            fhirClassChildren = fhirClassesToChildren[fhirClass];  
+        else:
+            fhirClassChildren = getFHIRClassChildren(fhirClass);
         
         totalChildMatches = 0;
         
         if ( fhirClassChildren == None ): return 0;
+        
+        print "======================"
             
         # For each child of the EHR parent (also includes ATTRIBUTES (same tag) of EHR parent and children).
         for ehrClassChild in ehrClassChildren:
@@ -154,8 +178,9 @@ class FHIRTranslation():
             for fhirClassChild in fhirClassChildren:
                 
                 # Compare all FHIR class children to each child of this EHR class, and find the most that match in order to resolve multiple potential class matches.
-                if FHIRTranslation.matches(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD):
+                if FHIRTranslation.matches(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD):
                     
+                    print ehrClassChild + " " + fhirClassChild;
                     totalChildMatches = totalChildMatches + 1;
                     
                     break;
@@ -168,84 +193,106 @@ class FHIRTranslation():
     # Input data from multiple EHRs to work out mapping (e.g. Vision has lots more stuff for event).
     
     @staticmethod
+    def getFHIRClasses():
+        
+        fhirClasses = [];
+        
+        for _, fhirModule, _ in pkgutil.iter_modules([FHIRTranslation.MODELS_PATH]):
+            
+            # Don't use test modules as a potential match.
+            if "_tests" in fhirModule: continue;
+             
+            for fhirClass in pyclbr.readmodule(FHIRTranslation.MODELS_PATH + "." + fhirModule).keys():
+                
+                # Import this module as we'll need it later to examine content of FHIR Class
+                importedModule = importlib.import_module(FHIRTranslation.MODELS_PATH + "." + fhirModule);
+                # Turn the fhirClass string into a fhirClass reference.
+                fhirClasses.append(getattr(importedModule, fhirClass));
+                
+        return fhirClasses;
+    
+    @staticmethod
+    def getPatient(id):
+        # return SystmOne().getPatientRecord("4917111072");
+        return xml.etree.ElementTree.parse('../../../../resources/' + FHIRTranslation.EHR_PATH + '.xml');
+                   
+    @staticmethod
     def translatePatient():
         
         FHIRTranslation.translatePatientInit();
-        
+    
     # Shortest path between two joined concepts in EHR confirms connection in FHIR? E.g. closest mention of 'medication' to 'location' (both are under same XML head in EHR), is 'clinicalimpression' and 'encounter', so these classes are used to hold this information.
     @staticmethod
     def translatePatientInit():
         
-        # Get JSON representation of FHIR resource (Patient).
-        # Testing: json.load(open('../../../../resources/patient-fhir.json')
-        # patientJSON = Utilities.JSONfromFHIRClass(Patient, False);
-        
         # Get patient record from EHR
-        # SystmOne().getPatientRecord("4917111072");
+        patientXML = FHIRTranslation.getPatient("4917111072");
+        
+        # Prepare lists of classes and children.
+        ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), set(), False);
+        ehrClassesToChildren = {};
+        
+        for ehrClass in ehrClasses:
+            
+            ehrClassesToChildren[ehrClass] = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass);
+        
+        fhirClasses = FHIRTranslation.getFHIRClasses();
+        fhirClassesToChildren = {};
+        
+        for fhirClass in fhirClasses:
+            
+            fhirClassesToChildren[fhirClass] = FHIRTranslation.getFHIRClassChildren(fhirClass);
         
         # Match components of patient record from EHR to components from JSON representation;
         ehrFHIRMatches = {};
         
-        # Find classes, and then match within those classes.
-        for ehrClass in Utilities.getXMLElements(xml.etree.ElementTree.parse('../../../../resources/tpp.xml').find("Response"), set(), False):
+        # Match EHR to FHIR classes based on similarity between EHR attributes and nested tags and FHIR class attributes.
+        for ehrClass in ehrClasses:
+            
+            print ehrClass;
             
             ehrFHIRMatches[ehrClass] = [];
+            highestChildSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClasses[0], ehrClassesToChildren, fhirClassesToChildren);
             
-            for _, fhirModule, _ in pkgutil.iter_modules(['models']):
+            for fhirClass in fhirClasses:
                 
-                for fhirClass in pyclbr.readmodule("models." + fhirModule).keys():
+                childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren);
+                
+                if childSimilarity >= highestChildSimilarity and childSimilarity >= FHIRTranslation.CHILD_MATCH_THRESHOLD:
                     
-                    if FHIRTranslation.matches(ehrClass, fhirClass):
+                    if childSimilarity > highestChildSimilarity:
+                        # Clears list
+                        del ehrFHIRMatches[ehrClass][:];
                         
-                        text = FHIRTranslation.textSimilarity(ehrClass, fhirClass);
-                        match = FHIRTranslation.match(ehrClass, fhirClass);
-                        
-                        # Import this module as we'll need it later to examine content of FHIR Class
-                        importedModule = importlib.import_module("models." + fhirModule);
-                        # Turn the fhirClass string into a fhirClass reference.
-                        fhirClass = getattr(importedModule, fhirClass);
-                        ehrFHIRMatches[ehrClass].append((fhirClass, text, match));
-                        
-                        #print ehrClass + " " + fhirClass + " (" + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.textSimilarity)) + " " + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.semanticSimilarity)) + " " + str(FHIRTranslation.compositeStringSimilarity(ehrClass, fhirClass, FHIRTranslation.grammaticalSimilarity)) + ")";
-                
-        # If there are multiple matches, e.g. with medication, NOW find which candidate class can house the attributes from the EHR header best:
-        # For each EHR parent       
+                    ehrFHIRMatches[ehrClass].append(fhirClass);
+                    highestChildSimilarity = childSimilarity;
+                    
+                    print str(ehrFHIRMatches[ehrClass]) + " " + str(highestChildSimilarity);
+        
+        # Now decide between multiples matches based upon names of parent classes.
         for ehrClass in ehrFHIRMatches:
             
-            #print ehrClass;
-            #print ehrFHIRMatches[ehrClass];
-            
-            highestChildSimilarity = 0;
-            highestChildSimilarityClasses = {};
-            
-            fhirClassMatches = [];
+            # Convert EHR to FHIR class matches to include similarity of parent class names.
+            fhirClassesWithSimilarity = [];
             
             # For each matching FHIR class to this EHR class
-            for fhirClassMatch in ehrFHIRMatches[ehrClass]:
+            for fhirClass in ehrFHIRMatches[ehrClass]:
                 
-                childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClassMatch[0]);
-                
-                fhirClassMatches.append(fhirClassMatch + (childSimilarity,));
-                
-                if childSimilarity >= highestChildSimilarity:
-                        
-                    highestChildSimilarity = childSimilarity;
-                    highestChildSimilarityClasses["EHR"] = ehrClass;
-                    highestChildSimilarityClasses["FHIR"] = fhirClass;
-                    highestChildSimilarityClasses["Match"] = childSimilarity;
+                similarity = FHIRTranslation.match(ehrClass, fhirClass.__name__);
+                fhirClassWithSimilarity = (fhirClass, similarity);
+                fhirClassesWithSimilarity.append(fhirClassWithSimilarity);
             
-            ehrFHIRMatches[ehrClass] = fhirClassMatches;
-                         
+            ehrFHIRMatches[ehrClass] = fhirClassesWithSimilarity;              
+        
         for ehrClass in ehrFHIRMatches:
             
             print ehrClass;
-            # Order by child similarity, then parent similarity, and then finally by parent text similarity.
-            matches = sorted(ehrFHIRMatches[ehrClass], key=lambda x: (x[3], x[2], x[1]), reverse=True);
+            matches = sorted(ehrFHIRMatches[ehrClass], key=lambda sortable: (sortable[0], sortable[1]), reverse=True);
             
             if len(matches):
-                print matches[0];
-               
-        # Replace values
+                print matches;
+        
+        # Replace values in JSON version of matching classes.
         # Utilities.getReplaceJSONKeys(patientJSON, None, list(), 'id', 'abc');
         
         # return.
