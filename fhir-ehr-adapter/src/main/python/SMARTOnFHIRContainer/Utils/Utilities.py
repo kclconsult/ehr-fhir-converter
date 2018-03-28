@@ -8,7 +8,7 @@ from EHR.APIVariables import APIVariables
 
 import unittest
 
-import models.codesystem;
+#import models.codesystem;
 
 class Utilities(object):
     
