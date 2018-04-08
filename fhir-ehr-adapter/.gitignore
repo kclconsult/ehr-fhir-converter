@@ -2,7 +2,7 @@
 
 src/main/python/SMARTOnFHIRContainer/fhir-parser/
 src/main/python/SMARTOnFHIRContainer/models/
-src/main/python/SMARTOnFHIRContainer/models-full/
+src/main/python/SMARTOnFHIRContainer/models_full/
 
 # Created by https://www.gitignore.io/api/macos,pydev,python,eclipse
 
