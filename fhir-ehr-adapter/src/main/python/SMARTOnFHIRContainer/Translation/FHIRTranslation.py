@@ -55,21 +55,23 @@ class FHIRTranslation():
         if ehrAttribute == fhirAttribute:
             return 1.0;
         
-        if ehrAttribute.lower() in fhirAttribute.lower() or fhirAttribute.lower() in ehrAttribute.lower():
+        if ehrAttribute.lower() in fhirAttribute.lower():
             return len(ehrAttribute) / float(len(fhirAttribute));
+        
+        if fhirAttribute.lower() in ehrAttribute.lower():
+            return len(fhirAttribute) / float(len(ehrAttribute));
         
         if stem:
             stemmer = PorterStemmer()
             ehrAttribute = stemmer.stem(ehrAttribute);
             fhirAttribute = stemmer.stem(fhirAttribute);
-            
+        
         return fuzz.ratio(ehrAttribute, fhirAttribute) / 100.0;
     
     # Similarity Metric B
     @staticmethod
     def semanticSimilarity(ehrAttribute, fhirAttribute):
         
-        # https://docs.python.org/2/library/sys.html#sys.maxint
         highestSimilarity = 0;
        
         # wordnet requires word separation by underscore, whereas EHR XML responses (for TPP at least) use camelCase.
@@ -116,9 +118,11 @@ class FHIRTranslation():
             
             for fhirWord in fhirWords:
                 
-                if( comparisonMethod(ehrWord, fhirWord) > highestSimilarity ):
+                similarity = comparisonMethod(ehrWord, fhirWord);
+                
+                if( similarity > highestSimilarity ):
                     
-                    highestSimilarity = comparisonMethod(ehrWord, fhirWord);
+                    highestSimilarity = similarity;
 
         return highestSimilarity;
     
