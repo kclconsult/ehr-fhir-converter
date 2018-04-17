@@ -185,7 +185,7 @@ class FHIRTranslation():
                 # Compare all FHIR class children to each child of this EHR class, and find the most that match in order to resolve multiple potential class matches.
                 if FHIRTranslation.matches(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD):
                     
-                    totalChildMatches = totalChildMatches + 1;
+                    totalChildMatches += 1;
                     
                     break;
         
@@ -223,6 +223,7 @@ class FHIRTranslation():
     @staticmethod
     def translatePatient():
         
+        #print FHIRTranslation.match("string", "line");
         #print FHIRTranslation.compositeStringSimilarity("Postcode", "PostalCode", FHIRTranslation.textSimilarity)
         #print FHIRTranslation.matches("Postcode", "PostalCode", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD);
         #print FHIRTranslation.childSimilarity("Address", "models_full.address.Address", None, None, FHIRTranslation.getPatient("4917111072"));
@@ -235,23 +236,55 @@ class FHIRTranslation():
         # Get patient record from EHR
         patientXML = FHIRTranslation.getPatient("4917111072");
         
-        # Prepare lists of classes and children.
+        # Get ehrClasses and fhirClasses
         ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), set(), False);
+        fhirClasses = FHIRTranslation.getFHIRClasses();
+        
+        # Prepare lists of classes and children.
         ehrClassesToChildren = {};
         
         for ehrClass in ehrClasses:
             
             ehrClassesToChildren[ehrClass] = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass);
         
-        fhirClasses = FHIRTranslation.getFHIRClasses();
         fhirClassesToChildren = {};
         
         for fhirClass in fhirClasses:
             
-            fhirClassesToChildren[fhirClass] = FHIRTranslation.getFHIRClassChildren(fhirClass);
+            children = FHIRTranslation.getFHIRClassChildren(fhirClass);
+            
+            if ( children != None ):
+                fhirClassesToChildren[fhirClass] = children;
+        
+        # Remove FHIR classes that do not have children (typically 'type' classes).
+        fhirClasses = fhirClassesToChildren.keys();
+        
+        # Match stage 1: Exact matches
         
         # Match components of patient record from EHR to components from JSON representation;
         ehrFHIRMatches = {};
+        
+        ehrClassesToRemove = set();
+        
+        for ehrClass in ehrClasses:
+        
+            matches = 0;
+            
+            for fhirClass in fhirClasses:
+                
+                if FHIRTranslation.compositeStringSimilarity(ehrClass, str(fhirClass.__name__), FHIRTranslation.textSimilarity) == 1.0:
+                
+                    matches += 1;
+                    fhirMatch = fhirClass;
+            
+            # If there is only one 100% match between an EHR Class and FHIR Class, we take this as the best candidate, and remove the EHR class from the pool.
+            if matches == 1:
+                ehrFHIRMatches[ehrClass] = [(fhirMatch, FHIRTranslation.childSimilarity(ehrClass, fhirMatch, ehrClassesToChildren, fhirClassesToChildren))];
+                ehrClassesToRemove.add(ehrClass);
+        
+        ehrClasses = ehrClasses - ehrClassesToRemove;
+        
+        # Match Stage 2: Child matches
         
         # Match EHR to FHIR classes based on similarity between EHR attributes and nested tags and FHIR class attributes.
         for ehrClass in ehrClasses:
@@ -265,7 +298,9 @@ class FHIRTranslation():
                 if childSimilarity >= FHIRTranslation.CHILD_MATCH_THRESHOLD:
                     
                     ehrFHIRMatches[ehrClass].append((fhirClass, childSimilarity));
-                  
+        
+        # Match Stage 3: Fuzzy parent matches
+        
         # Now decide between multiples matches based upon names of parent classes.
         for ehrClass in ehrFHIRMatches:
             
@@ -275,6 +310,7 @@ class FHIRTranslation():
             # For each matching FHIR class to this EHR class
             for fhirClassChildSimilarity in ehrFHIRMatches[ehrClass]:
                 
+                print ehrClass + " " + str(fhirClassChildSimilarity)
                 similarity = FHIRTranslation.match(ehrClass, fhirClassChildSimilarity[0].__name__);
                 lst = list(fhirClassChildSimilarity)
                 # Add the parent similarity to the child similarity to get an overall similarity value.
