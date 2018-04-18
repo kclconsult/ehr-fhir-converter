@@ -10,7 +10,8 @@ import unittest
 
 #import models.codesystem;
 
-import models_full.address;
+import models_full.elementdefinition;
+import models_full.patient;
 
 class Utilities(object):
     
