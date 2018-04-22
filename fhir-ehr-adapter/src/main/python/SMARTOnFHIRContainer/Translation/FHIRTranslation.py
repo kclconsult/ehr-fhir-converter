@@ -19,7 +19,7 @@ class FHIRTranslation():
     
     MODELS_PATH = "models_full";
     
-    EHR_PATH = "tpp-extract";
+    EHR_PATH = "tpp-full";
     
     # Could adjust based on user feedback if, for example, matches are too generous.
     # A user-friendly way of asking about this 'do you feel you've got too many results?'.
@@ -195,16 +195,13 @@ class FHIRTranslation():
         for ehrClassChild in ehrClassChildren:
             
             highestMatchStrength = 0;
-            hashMatched = False;
+            hasMatched = False;
             
             # Look at that FHIR classes children
             for fhirClassChild in fhirClassChildren:
                 
                 # Compare all FHIR class children to each child of this EHR class, and find the most that match in order to resolve multiple potential class matches.
-                
                 if FHIRTranslation.matches(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, True):
-                    
-                    print ehrClassChild + " " + fhirClassChild;
                     
                     matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False);
                 
@@ -218,11 +215,15 @@ class FHIRTranslation():
                 
             totalMatchStrength += highestMatchStrength;
         
-        averageMatchStrength = totalMatchStrength / float(totalChildMatches);
-        print averageMatchStrength;
+        if ( totalChildMatches > 0 ):
         
-        # How many matches have been found for the EHR elements in the candidate FHIR class.              
-        return (totalChildMatches / float(len(ehrClassChildren))) * averageMatchStrength;   
+            averageMatchStrength = totalMatchStrength / float(totalChildMatches);
+        
+            # How many matches have been found for the EHR elements in the candidate FHIR class (weighted by match strength).              
+            return (totalChildMatches / float(len(ehrClassChildren))) * averageMatchStrength;   
+        
+        else:
+            return 0;
     
     # Event -> Encounter 
     # Try using content of EHR class to work out FHIR class
@@ -258,7 +259,9 @@ class FHIRTranslation():
         #print FHIRTranslation.match("string", "line");
         #print FHIRTranslation.compositeStringSimilarity("CareStartDate", "minValueDate", FHIRTranslation.textSimilarity, True)
         #print FHIRTranslation.matches("Postcode", "PostalCode", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD);
-        print FHIRTranslation.childSimilarity("Demographics", "models_full.elementdefinition.ElementDefinition", None, None, FHIRTranslation.getPatient("4917111072"));
+        
+        # Try with activitydefinition
+        print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
         #FHIRTranslation.translatePatientInit();
     
     # Shortest path between two joined concepts in EHR confirms connection in FHIR? E.g. closest mention of 'medication' to 'location' (both are under same XML head in EHR), is 'clinicalimpression' and 'encounter', so these classes are used to hold this information.
@@ -291,9 +294,9 @@ class FHIRTranslation():
         # Remove FHIR classes that do not have children (typically 'type' classes).
         fhirClasses = fhirClassesToChildren.keys();
         
-        # Match stage 1: Exact matches
+        # Match components of patient record from EHR to components from JSON representation
         
-        # Match components of patient record from EHR to components from JSON representation;
+        # Match stage 1: Exact matches
         ehrFHIRMatches = {};
         
         ehrClassesToRemove = set();
@@ -318,6 +321,8 @@ class FHIRTranslation():
         
         # ! NEED TO SEE IF SUBSETS OF XML COULD ALSO MATCH A CLASS, E.G. NAME IN DEMOGRAPHICS IN HUMAN NAME.
         # Extract subset of fields, and if they match a parent field, replace all of those fields with the parent field before performing child match. E.g. replace all name elements in demographics with HumanName match to aid match with patient.
+        # These also need to then be counted as matches by the childSimilarity test (e.g. first name, surname, middle name, compiled into human name, adds 3 matches). Although, reducing the number of fields will increase the match strength anyway, as it's over less fields.
+        # Only needs to be done with XML elements that do not have children, as these are the fields.
         
         # Match Stage 2: Child matches
         
@@ -333,11 +338,31 @@ class FHIRTranslation():
                 childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren);
                 
                 childMatches.append((fhirClass, childSimilarity));
-        
-        
-        
-        # If no matches are above the threshold, pick the highest one.
-        
+
+            childMatches = sorted(childMatches, key=lambda sortable: (sortable[1]), reverse=True);
+            
+            for childMatch in childMatches:
+                
+                if ( childMatch[1] > FHIRTranslation.CHILD_MATCH_THRESHOLD ):
+                    ehrFHIRMatches[ehrClass].append(childMatch);
+                    
+            # If there are no candidates for an ehrClass based on child matches (i.e. none of the matches are above the threshold), then choose the highest.
+            if len(ehrFHIRMatches[ehrClass]) == 0:
+                
+                firstChildMatch = childMatches[0];
+                highestMatch = firstChildMatch[1];
+                ehrFHIRMatches[ehrClass].append(firstChildMatch);
+                
+                # Skip the match that has just been added.
+                iterChildMatches = iter(childMatches);
+                next(iterChildMatches);
+                
+                for childMatch in iterChildMatches:
+                    if ( childMatch[1] == highestMatch ):
+                        ehrFHIRMatches[ehrClass].append(childMatch);
+                    else:
+                        break;
+            
         # Match Stage 3: Fuzzy parent matches
         
         # Now decide between multiples matches based upon names of parent classes.
