@@ -48,6 +48,8 @@ class FHIRTranslation():
     
     GRAMMATICAL_SIMILARITY_WEIGHTING = 0.6;
     
+    CONTEXT_WEIGHTING = 2;
+    
     # Similarity Metric A
     @staticmethod
     def textSimilarity(ehrAttribute, fhirAttribute, stem=True):
@@ -249,7 +251,7 @@ class FHIRTranslation():
                     #matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False);
                     matchStrength = FHIRTranslation.matchStrength(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, True);
                     
-                    print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
+                    # print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
                     
                     if matchStrength > highestMatchStrength:
                         highestMatchStrength = matchStrength;
@@ -275,15 +277,21 @@ class FHIRTranslation():
                 
                 totalChildMatches += len(fhirMatchCandidates[fhirMatchCandidate]);
                 
+                # if the ehr child and fhir child are linked by the name of the ehr entry, this should affect the match strength. 
+                if ehrClass.lower() in fhirMatchCandidate.lower() and ehrClass.lower() in fhirMatchCandidates[fhirMatchCandidate][0][0].lower():
+                    fhirMatchCandidates[fhirMatchCandidate][0] = (fhirMatchCandidates[fhirMatchCandidate][0][0], fhirMatchCandidates[fhirMatchCandidate][0][1] * FHIRTranslation.CONTEXT_WEIGHTING);
+                    
                 totalMatchStrength += fhirMatchCandidates[fhirMatchCandidate][0][1];
+        
+        #print fhirMatchCandidates;
         
         if ( totalChildMatches > 0 ):
         
             averageMatchStrength = totalMatchStrength / float(totalChildMatches);
            
-            print str(totalChildMatches) + " " + str(totalChildMatches / float(len(ehrClassChildren))) + " " + str(averageMatchStrength) + " " + str(len(fhirClassChildren)) + " " + str(min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1));
+            # print str(totalChildMatches) + " " + str(totalChildMatches / float(len(ehrClassChildren))) + " " + str(averageMatchStrength) + " " + str(len(fhirClassChildren)) + " " + str(min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1));
             # How many matches have been found for the EHR elements in the candidate FHIR class (weighted by match strength, and by the specificity of the class).       
-            return ((totalChildMatches / float(len(ehrClassChildren))) * averageMatchStrength) * min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1);   
+            return ((totalChildMatches / float(len(ehrClassChildren))) * averageMatchStrength) # * min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1);   
         
         else:
             return 0;
@@ -321,13 +329,13 @@ class FHIRTranslation():
         
         #print FHIRTranslation.textSimilarity("last", "adjustment", True);
         #print FHIRTranslation.matchStrength("MedicationType", "medicationCodeableConcept", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, True);
-        print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
-        print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"));
+        #print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
+        #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.activitydefinition.ActivityDefinition", None, None, FHIRTranslation.getPatient("4917111072"));
         
-        #FHIRTranslation.translatePatientInit();
+        FHIRTranslation.translatePatientInit();
     
     # Shortest path between two joined concepts in EHR confirms connection in FHIR? E.g. closest mention of 'medication' to 'location' (both are under same XML head in EHR), is 'clinicalimpression' and 'encounter', so these classes are used to hold this information.
     @staticmethod
@@ -433,9 +441,6 @@ class FHIRTranslation():
                     else:
                         break;
         
-        print ehrFHIRMatches;
-        return;
-    
         # Match Stage 3: Fuzzy parent matches
         
         # Now decide between multiples matches based upon names of parent classes.
