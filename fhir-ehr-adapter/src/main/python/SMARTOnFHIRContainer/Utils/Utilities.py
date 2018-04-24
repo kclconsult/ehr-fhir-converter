@@ -53,7 +53,7 @@ class Utilities(object):
     
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, set, children=True, parents=True, recurse=True):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -63,6 +63,8 @@ class Utilities(object):
         
         # Don't examine classes that don't use the 'elementsProperties' approach to list attributes.
         if ( not callable(getattr(root, "elementProperties", None)) ): return;
+        
+        if ( root not in classesToChildren.keys() ): classesToChildren[root] = set();
         
         # Attributes of this class and parents.
         attributes = root.elementProperties(root());
@@ -81,26 +83,28 @@ class Utilities(object):
             
             if children:
                 if not callable(attribute):
-                    set.add(attributeContainer[0]);
+                    classesToChildren[root].add(attributeContainer[0]);
                     
             if parents:
                 if callable(attribute):
-                    set.add(attributeContainer[0]);
+                    classesToChildren[root].add(attributeContainer[0]);
                     
             else:
-                set.add(attributeContainer[0]);
+                classesToChildren[root].add(attributeContainer[0]);
             
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             
             # Extensions classes appear in every class so don't show anything unique.
             # Don't follow links to types that are of the root class itself.
-            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[0] not in set and attributeContainer[2] != root:
+            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[0] not in [item for item in classesToChildren] and attributeContainer[2] != root:
                 
-                print attributeContainer[2];
-                
-                Utilities.getFHIRElements(attributeContainer[2], set, children, parents, recurse);
-                   
-        return set;
+                Utilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse);
+        
+        if recurse:     
+            return classesToChildren;
+        
+        else:
+            return classesToChildren[root];
     
     @staticmethod
     def getXMLElements(root, set, children=True, parents=True, recurse=True, attributes=False):
