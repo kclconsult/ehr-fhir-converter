@@ -10,8 +10,16 @@ import unittest
 
 #import models.codesystem;
 
-import models_full.elementdefinition;
+import models_full.activitydefinition;
+import models_full.devicemetric;
+import models_full.claimresponse;
+import models_full.medication;
+import models_full.medicationdispense;
+import models_full.medicationadministration;
+import models_full.medicationrequest;
 import models_full.patient;
+import models_full.sequence;
+
 
 class Utilities(object):
     
@@ -83,10 +91,14 @@ class Utilities(object):
                 set.add(attributeContainer[0]);
             
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
+            
             # Extensions classes appear in every class so don't show anything unique.
-            if recurse and callable(attribute) and "FHIRReference" not in str(FHIRClass) and "Extension" not in str(attribute[2]):
+            # Don't follow links to types that are of the root class itself.
+            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[0] not in set and attributeContainer[2] != root:
                 
-                Utilities.getFHIRElements(elem, set, children, parents, recurse);
+                print attributeContainer[2];
+                
+                Utilities.getFHIRElements(attributeContainer[2], set, children, parents, recurse);
                    
         return set;
     
