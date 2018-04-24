@@ -105,7 +105,6 @@ class FHIRTranslation():
         for lemma in Utilities.lemmas(ehrAttribute):
             
             if FHIRTranslation.textSimilarity(lemma, fhirAttribute, True) > highestSimilarity and FHIRTranslation.textSimilarity(lemma, fhirAttribute, True) > FHIRTranslation.TEXT_SIMILARITY_THRESHOLD:
-                
                 highestSimilarity = FHIRTranslation.textSimilarity(lemma, fhirAttribute, True);
         
         return highestSimilarity;
@@ -134,13 +133,9 @@ class FHIRTranslation():
                 
                 similarity = comparisonMethod(ehrWord, fhirWord);
                 
-                if( similarity > highestSimilarity ):
+                if( similarity > highestSimilarity ): highestSimilarity = similarity;
                     
-                    highestSimilarity = similarity;
-                    
-                if ( similarity > highestSimilarityForEHRWord ):
-                    
-                    highestSimilarityForEHRWord = similarity;
+                if ( similarity > highestSimilarityForEHRWord ): highestSimilarityForEHRWord = similarity;
             
             totalSimilarity += highestSimilarityForEHRWord;
             
@@ -209,11 +204,28 @@ class FHIRTranslation():
         return Utilities.getXMLElements(xml.find(".//" + ehrClass), set(), True, True, False, True);
     
     @staticmethod
-    def getFHIRClassChildren(fhirClass):
-        return Utilities.getFHIRElements(fhirClass, set(), True, True, True);
-    
+    def getFHIRClassChildren(fhirClass, linkedClasses):
+        
+        fhirElements = Utilities.getFHIRElements(fhirClass, {}, True, True, linkedClasses);
+        
+        if linkedClasses:
+            
+            fhirChildAndParent = [];
+            
+            for fhirClassToChildren in fhirElements:
+                
+                for fhirClassChild in fhirElements[fhirClassToChildren]:
+                    
+                    # If linked classes are examined, it's not just the name of the fhirChild for the supplied class added, but also the name of the fhir children in each linked class, and entries are stored as tuples, so the origin of the child can be traced.
+                    fhirChildAndParent.append((fhirClassChild, fhirClassToChildren));
+            
+            return fhirChildAndParent;
+               
+        else:
+            return fhirElements;
+        
     @staticmethod
-    def childSimilarity(ehrClass, fhirClass, ehrClassesToChildren=None, fhirClassesToChildren=None, xml=None):
+    def childSimilarity(ehrClass, fhirClass, ehrClassesToChildren=None, fhirClassesToChildren=None, xml=None, linkedClasses=False):
         
         if ( ehrClassesToChildren ):
             ehrClassChildren = ehrClassesToChildren[ehrClass];
@@ -223,7 +235,7 @@ class FHIRTranslation():
         if ( fhirClassesToChildren ):
             fhirClassChildren = fhirClassesToChildren[fhirClass];  
         else:
-            fhirClassChildren = FHIRTranslation.getFHIRClassChildren(fhirClass);
+            fhirClassChildren = FHIRTranslation.getFHIRClassChildren(fhirClass, linkedClasses);
         
         totalChildMatches = 0;
         # Because the number of matches isn't the only thing that's important, it's the accuracy of those matches.
@@ -246,10 +258,10 @@ class FHIRTranslation():
             for fhirClassChild in fhirClassChildren:
                 
                 # Compare all FHIR class children to each child of this EHR class, and find the most that match in order to resolve multiple potential class matches.
-                if FHIRTranslation.matches(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, True):
+                if FHIRTranslation.matches(ehrClassChild, fhirClassChild[0], FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, True):
                     
-                    #matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False);
-                    matchStrength = FHIRTranslation.matchStrength(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, True);
+                    #matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False);
+                    matchStrength = FHIRTranslation.matchStrength(ehrClassChild, fhirClassChild[0], FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, True);
                     
                     # print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
                     
@@ -278,12 +290,12 @@ class FHIRTranslation():
                 totalChildMatches += len(fhirMatchCandidates[fhirMatchCandidate]);
                 
                 # if the ehr child and fhir child are linked by the name of the ehr entry, this should affect the match strength. 
-                if ehrClass.lower() in fhirMatchCandidate.lower() and ehrClass.lower() in fhirMatchCandidates[fhirMatchCandidate][0][0].lower():
+                if ehrClass.lower() in fhirMatchCandidate[0].lower() and ehrClass.lower() in fhirMatchCandidates[fhirMatchCandidate][0][0].lower():
                     fhirMatchCandidates[fhirMatchCandidate][0] = (fhirMatchCandidates[fhirMatchCandidate][0][0], fhirMatchCandidates[fhirMatchCandidate][0][1] * FHIRTranslation.CONTEXT_WEIGHTING);
                     
                 totalMatchStrength += fhirMatchCandidates[fhirMatchCandidate][0][1];
         
-        #print fhirMatchCandidates;
+        print fhirMatchCandidates;
         
         if ( totalChildMatches > 0 ):
         
@@ -330,12 +342,12 @@ class FHIRTranslation():
         #print FHIRTranslation.textSimilarity("last", "adjustment", True);
         #print FHIRTranslation.matchStrength("MedicationType", "medicationCodeableConcept", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
-        #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"));
+        print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.activitydefinition.ActivityDefinition", None, None, FHIRTranslation.getPatient("4917111072"));
         
-        FHIRTranslation.translatePatientInit();
+        #FHIRTranslation.translatePatientInit();
     
     # Shortest path between two joined concepts in EHR confirms connection in FHIR? E.g. closest mention of 'medication' to 'location' (both are under same XML head in EHR), is 'clinicalimpression' and 'encounter', so these classes are used to hold this information.
     @staticmethod
@@ -360,7 +372,7 @@ class FHIRTranslation():
         
         for fhirClass in fhirClasses:
             
-            children = FHIRTranslation.getFHIRClassChildren(fhirClass);
+            children = FHIRTranslation.getFHIRClassChildren(fhirClass, True);
             
             if ( children != None ):
                 fhirClassesToChildren[fhirClass] = children;
