@@ -6,7 +6,7 @@
 	<FunctionVersion>1.0</FunctionVersion>
 	<ResponseUID>855DFE00-FBED-11E7-B949-99AB34D85A60</ResponseUID>
 	<Response>
-		<Identity>
+		<Identity> 
 			<NHSNumber>4917111072</NHSNumber>
 			<StrategicReportingIdentifier>246216</StrategicReportingIdentifier>
 		</Identity>

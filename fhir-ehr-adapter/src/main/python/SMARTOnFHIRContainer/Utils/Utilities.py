@@ -11,6 +11,7 @@ import unittest
 #import models.codesystem;
 
 import models_full.activitydefinition;
+import models_full.address;
 import models_full.devicemetric;
 import models_full.claimresponse;
 import models_full.medication;
@@ -53,7 +54,7 @@ class Utilities(object):
     
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, addParentName=False):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -80,23 +81,25 @@ class Utilities(object):
         for attributeContainer in attributes:
             
             attribute = getattr(attributeContainer[2], "elementProperties", None)
+            attributeName = attributeContainer[0];
+            
+            if addParentName: attributeName = attributeName + str(root.__name__);
             
             if children:
                 if not callable(attribute):
-                    classesToChildren[root].add(attributeContainer[0]);
+                    classesToChildren[root].add(attributeName);
                     
             if parents:
                 if callable(attribute):
-                    classesToChildren[root].add(attributeContainer[0]);
+                    classesToChildren[root].add(attributeName);
                     
             else:
-                classesToChildren[root].add(attributeContainer[0]);
+                classesToChildren[root].add(attributeName);
             
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
-            
             # Extensions classes appear in every class so don't show anything unique.
             # Don't follow links to types that are of the root class itself.
-            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[0] not in [item for item in classesToChildren] and attributeContainer[2] != root:
+            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[0] not in set([j for i in classesToChildren.values() for j in i]) and attributeContainer[2] != root:
                 
                 Utilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse);
         
@@ -137,9 +140,9 @@ class Utilities(object):
             
             if index > 0 and letter.isupper():
                 word = word[0:index] + "_" + word[index:len(word)]
-                index = index + 1
+                index += 1
                 
-            index = index + 1
+            index += 1
             
         return word
     
@@ -153,6 +156,17 @@ class Utilities(object):
         else:
             return Utilities.capitalToSeparation(word).split("_");
     
+    @staticmethod
+    def separationToCapital(word):
+        
+        full_word = "";
+        
+        for section in word.split("_"):
+            
+            full_word += section.capitalize();
+        
+        return full_word;
+        
     # NB. FHIR is not a hierarchy.
     @staticmethod 
     def JSONfromFHIRClass(FHIRClass, nullValues):
