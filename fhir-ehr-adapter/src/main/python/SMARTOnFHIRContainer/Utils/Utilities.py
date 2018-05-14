@@ -83,7 +83,7 @@ class Utilities(object):
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             attributeName = attributeContainer[0];
             
-            if addParentName: attributeName = attributeName + str(root.__name__);
+            if addParentName: attributeName = attributeName + str(root.__name__); # ! Change this to add it as an extra child.
             
             if children:
                 if not callable(attribute):
