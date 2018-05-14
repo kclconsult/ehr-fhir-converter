@@ -26,6 +26,8 @@ if __name__ == "__main__":
             action = 3;
         elif ( sys.argv[1] == "-s" ):
             action = 4;
+        elif ( sys.argv[1] == "-g" ):
+            action = 5;
         
         FHIRTranslation.translatePatient(action, None, sys.argv[2], sys.argv[3]);
           
