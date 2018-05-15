@@ -8,10 +8,9 @@ from EHR.APIVariables import APIVariables
 
 import unittest
 
-#import models.codesystem;
-
 import models_full.activitydefinition;
 import models_full.address;
+#import models.codesystem;
 import models_full.devicemetric;
 import models_full.claimresponse;
 import models_full.medication;

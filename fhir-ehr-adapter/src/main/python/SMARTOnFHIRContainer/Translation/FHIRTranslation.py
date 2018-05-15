@@ -22,23 +22,19 @@ class FHIRTranslation():
     
     EHR_PATH = "tpp-full";
     
-    # Could adjust based on user feedback if, for example, matches are too generous.
-    # A user-friendly way of asking about this 'do you feel you've got too many results?'.
-    # Different threshold if two words (less strict).
-    # Single threshold for all
-    TEXT_SIMILARITY_THRESHOLD = 0.95;
-    
-    SEMANTIC_SIMILARITY_THRESHOLD = 0.8;
-    
-    GRAMMATICAL_SIMILARITY_THRESHOLD = 0.5;
-    
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95;
     
-    # Might want to be more generous with child matches.
-    OVERALL_CHILD_SIMILARITY_THRESHOLD = 0.8;
+    TEXT_SIMILARITY_THRESHOLD = 0.95;
     
-    # The portion of child fields in an EHR tag that must be housed by a FHIR class in order to consider that class a match (weighted by match strength and candidate class specificity)..
+    SEMANTIC_SIMILARITY_THRESHOLD = 0.95;
+    
+    GRAMMATICAL_SIMILARITY_THRESHOLD = 0.95;
+  
+    # Might want to be more generous with child matches.
+    OVERALL_CHILD_SIMILARITY_THRESHOLD = 0.95;
+    
+    # The portion of child fields in an EHR tag that must be housed by a FHIR class in order to consider that class a match (weighted by match strength (and candidate class specificity)).
     CHILD_MATCH_THRESHOLD = 0.1
     
     # If some metrics are too generous (e.g. semantic matching 'address' and 'reference'), then we can reduce their 'contribution' to the measure of similarity using a weighting.
@@ -107,7 +103,7 @@ class FHIRTranslation():
     @staticmethod
     def grammaticalSimilarity(ehrAttribute, fhirAttribute):
         
-        #if FHIRTranslation.textMatch(ehrAttribute, fhirAttribute): return 0;
+        if FHIRTranslation.textMatch(ehrAttribute, fhirAttribute): return 0;
         
         highestSimilarity = 0;
         
@@ -523,24 +519,4 @@ class FHIRTranslation():
         
         # return.
         # return patientJSON
-    
-    ##########
-    
-    # Combination Mechanism A
-    @staticmethod
-    def averageSimilarity(ehrClass, fhirClass):
-        
-        # Add all similarities together, divide to get between 0 and 1.
-        return (FHIRTranslation.textSimilarity(ehrClass, fhirClass, True) + 
-                FHIRTranslation.semanticSimilarity(ehrClass, fhirClass) + 
-                FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass)) / 3.0;
-        
-    # Combination Mechanism B
-    @staticmethod
-    def maxSimilarity(ehrClass, fhirClass):
-        
-        return max(FHIRTranslation.textSimilarity(ehrClass, fhirClass, True), 
-               max(FHIRTranslation.semanticSimilarity(ehrClass, fhirClass), FHIRTranslation.grammaticalSimilarity(ehrClass, fhirClass)));
-    
-    ##########
                 
