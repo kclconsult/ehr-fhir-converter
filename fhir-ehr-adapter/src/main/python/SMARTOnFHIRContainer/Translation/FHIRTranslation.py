@@ -153,10 +153,9 @@ class FHIRTranslation():
         
         else:
             return totalSimilarity / len(ehrWords); #max(float(len(ehrWords)), float(len(fhirWords)));
-    
-    # Same as match but without thresholds to give raw match value.
+        
     @staticmethod
-    def match(ehrClassField, fhirClassField, textSimilarityWeighting=TEXT_SIMILARITY_WEIGHTING, semanticSimilarityWeighting=SEMANTIC_SIMILARITY_WEIGHTING, grammaticalSimilarityWeighting=GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False, average=False):
+    def match(ehrClassField, fhirClassField, textSimilarityWeighting=TEXT_SIMILARITY_WEIGHTING, semanticSimilarityWeighting=SEMANTIC_SIMILARITY_WEIGHTING, grammaticalSimilarityWeighting=GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, overallSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False, average=False):
         
         textSimilarity = FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.textSimilarity, highestCompositeResult) * textSimilarityWeighting;
         
@@ -180,32 +179,28 @@ class FHIRTranslation():
         if (firstPastThreshold and grammaticalSimilarity >= grammaticalSimilarityThreshold):
             return FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.grammaticalSimilarity, highestCompositeResult);
         
-        if ( firstPastThreshold ): return 0;
+        strength = max(textSimilarity, max(semanticSimilarity, grammaticalSimilarity));
         
-        #
+        if ( highestStrength and strength >= overallSimilarityThreshold):
+            return strength;
         
-        if ( highestStrength ):
-            return max(textSimilarity, max(semanticSimilarity, grammaticalSimilarity));
-        if ( combined ):
-            return textSimilarity + semanticSimilarity + grammaticalSimilarity;
-        else:
-            return (textSimilarity + semanticSimilarity + grammaticalSimilarity) / 3.0;
+        strength = textSimilarity + semanticSimilarity + grammaticalSimilarity;
+        
+        if ( combined and strength >= overallSimilarityThreshold ):
+            return strength;
+        
+        strength = (textSimilarity + semanticSimilarity + grammaticalSimilarity) / 3.0;
+        
+        if ( average and strength >= overallSimilarityThreshold ):
+            return strength; 
+        
+        return 0;
         
     # See if there is a match at all, based on thresholds.
     @staticmethod
-    def matches(ehr, fhir, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False,average=False):
+    def matches(ehr, fhir, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, similarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False, average=False):
         
-        if ( firstPastThreshold ):
-            
-            if ( FHIRTranslation.match(ehr, fhir, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined, average) > 0 ):
-                return True;
-            
-            else:
-                return False;
-            
-        if ( higeshtStrength or combine or average ):
-            
-            if ( FHIRTranslation.match(ehr, fhir, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined, average) > FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD ):
+            if ( FHIRTranslation.match(ehr, fhir, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, similarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined, average) > 0 ):
                 return True;
             
             else:
@@ -270,17 +265,19 @@ class FHIRTranslation():
             for fhirClassChild in fhirClassChildren:
                 
                 # Compare all FHIR class children to each child of this EHR class, and find the most that match in order to resolve multiple potential class matches.
-                if FHIRTranslation.matches(ehrClassChild, fhirClassChild[0], FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, True) and FHIRTranslation.dataTypeCompatible("", ""):
+                if FHIRTranslation.matches(ehrClassChild, fhirClassChild[0], FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD) and FHIRTranslation.dataTypeCompatible("", ""):
+                    
+                    # To identify raw match strength, we want to look at the combined results of all the metrics without any thresholds.  
+                    matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
                     
                     #matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False);
-                    matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, False, True);
                     
                     # print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
                     
-                     # If the EHR child and FHIR child are linked by the name of the EHR parent, this should affect the match strength. E.g. Medication (EHR parent) in MedicationType (EHR Child)  
+                     # If the EHR child and FHIR child are linked by the name of the EHR parent, this should affect the match strength. E.g. Medication (EHR parent) in MedicationType (EHR Child) and medicationReference (FHIR child) 
                     if ehrClass.lower() in ehrClassChild.lower() and ehrClass.lower() in fhirClassChild[0].lower():
                          matchStrength = matchStrength * FHIRTranslation.CONTEXT_WEIGHTING;
-                    
+                         
                     if matchStrength > highestMatchStrength:
                         highestMatchStrength = matchStrength;
                         highestFHIRClassChildMatch = fhirClassChild;
@@ -358,7 +355,7 @@ class FHIRTranslation():
         return xml.etree.ElementTree.parse('../../../../resources/' + FHIRTranslation.EHR_PATH + '.xml');
                    
     @staticmethod
-    def translatePatient(action=None, ehrClass=None, ehrClassChild=None, fhirClassChild=None):
+    def translatePatient(action=None, ehrClass=None, ehrClassChild=None, fhirClassChild=None, fhirClass=None):
         
         print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
         print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
@@ -377,23 +374,27 @@ class FHIRTranslation():
         
         elif ( action == 1 and ehrClassChild and fhirClassChild ):
             print "Checking match strength."
-            print FHIRTranslation.match(ehrClassChild, fhirClassChild,  FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, False, True);
+            print FHIRTranslation.match(ehrClassChild, fhirClassChild,  FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
         
         elif ( action == 2 and ehrClassChild and fhirClassChild ):
             print "Checking for match value (if matches)."
-            print FHIRTranslation.match(ehrClassChild, fhirClassChild, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, True, False, True);
+            print FHIRTranslation.match(ehrClassChild, fhirClassChild, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, True, False, True);
             
         elif ( action == 3 and ehrClassChild and fhirClassChild ):
             print "Checking if matches."
             print FHIRTranslation.matches(ehrClassChild, fhirClassChild, FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, True);
         
-        elif ( action == 4 and ehrClassChild and ehrClassChild ):
+        elif ( action == 4 and ehrClassChild and fhirClassChild ):
             print "Checking semantic similarity."
             print FHIRTranslation.semanticSimilarity(ehrClassChild, fhirClassChild);
         
-        elif ( action == 5 and ehrClassChild and ehrClassChild ):
+        elif ( action == 5 and ehrClassChild and fhirClassChild ):
             print "Checking grammatical similarity."
             print FHIRTranslation.grammaticalSimilarity(ehrClassChild, fhirClassChild);
+            
+        elif ( action == 6 and ehrClass and fhirClass ):
+            print "Checking child similarity."
+            print FHIRTranslation.childSimilarity(ehrClass, fhirClass, None, None, FHIRTranslation.getPatient("4917111072"));
             
         else:
             ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), set(), False);
