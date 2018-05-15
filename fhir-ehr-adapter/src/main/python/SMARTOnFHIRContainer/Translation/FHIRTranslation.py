@@ -156,14 +156,14 @@ class FHIRTranslation():
     
     # Same as match but without thresholds to give raw match value.
     @staticmethod
-    def match(ehrClassField, fhirClassField, textSimilarityWeighting=TEXT_SIMILARITY_WEIGHTING, semanticSimilarityWeighting=SEMANTIC_SIMILARITY_WEIGHTING, grammaticalSimilarityWeighting=GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False):
+    def match(ehrClassField, fhirClassField, textSimilarityWeighting=TEXT_SIMILARITY_WEIGHTING, semanticSimilarityWeighting=SEMANTIC_SIMILARITY_WEIGHTING, grammaticalSimilarityWeighting=GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False, average=False):
         
         textSimilarity = FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.textSimilarity, highestCompositeResult) * textSimilarityWeighting;
         
         # This should change if highest result is not being used, perhaps to number of words that match?.
         
         if ( firstPastThreshold and textSimilarity >= textSimilarityThreshold  ):
-            return FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity, highestCompositeResult);
+            return FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.textSimilarity, highestCompositeResult);
         
         # 
         
@@ -171,14 +171,14 @@ class FHIRTranslation():
         
         if ( firstPastThreshold and semanticSimilarity >= semanticSimilarityThreshold):
             
-            return FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity, highestCompositeResult);
+            return FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.semanticSimilarity, highestCompositeResult);
         
         #
         
         grammaticalSimilarity = FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.grammaticalSimilarity, highestCompositeResult) * grammaticalSimilarityWeighting;
         
         if (firstPastThreshold and grammaticalSimilarity >= grammaticalSimilarityThreshold):
-            return FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity, highestCompositeResult);
+            return FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.grammaticalSimilarity, highestCompositeResult);
         
         if ( firstPastThreshold ): return 0;
         
@@ -197,7 +197,7 @@ class FHIRTranslation():
         
         if ( firstPastThreshold ):
             
-            if ( FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined) > 0 ):
+            if ( FHIRTranslation.match(ehr, fhir, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined, average) > 0 ):
                 return True;
             
             else:
@@ -205,7 +205,7 @@ class FHIRTranslation():
             
         if ( higeshtStrength or combine or average ):
             
-            if ( FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined) > FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD ):
+            if ( FHIRTranslation.match(ehr, fhir, FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined, average) > FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD ):
                 return True;
             
             else:
@@ -236,6 +236,7 @@ class FHIRTranslation():
         else:
             return fhirElements;
     
+    @staticmethod
     def dataTypeCompatible(ehrData, expression):
         return True;
        
@@ -251,10 +252,6 @@ class FHIRTranslation():
             fhirClassChildren = fhirClassesToChildren[fhirClass];  
         else:
             fhirClassChildren = FHIRTranslation.getFHIRClassChildren(fhirClass, linkedClasses);
-        
-        totalChildMatches = 0;
-        # Because the number of matches isn't the only thing that's important, it's the accuracy of those matches.
-        totalMatchStrength = 0;
         
         if ( fhirClassChildren == None ): return 0;
         
@@ -280,34 +277,47 @@ class FHIRTranslation():
                     
                     # print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
                     
+                     # If the EHR child and FHIR child are linked by the name of the EHR parent, this should affect the match strength. E.g. Medication (EHR parent) in MedicationType (EHR Child)  
+                    if ehrClass.lower() in ehrClassChild.lower() and ehrClass.lower() in fhirClassChild[0].lower():
+                         matchStrength = matchStrength * FHIRTranslation.CONTEXT_WEIGHTING;
+                    
                     if matchStrength > highestMatchStrength:
                         highestMatchStrength = matchStrength;
                         highestFHIRClassChildMatch = fhirClassChild;
                     
             if highestFHIRClassChildMatch in fhirMatchCandidates.keys():
                 
+                # If there are other children in the EHR that are most related to this highest matching FHIR attribute.
                 if len(fhirMatchCandidates[highestFHIRClassChildMatch]) > 0:
                     
+                    # If the strength of correspondence between this EHR attribute and that FHIR attribute is stronger than all the others (everything in this list has the same strength, so we access position 0, and then position 1 for the strength (position 0 the ehr child name)).
                     if highestMatchStrength >= fhirMatchCandidates[highestFHIRClassChildMatch][0][1]:
                         
+                        # If it's greater, clear the list.
                         if highestMatchStrength > fhirMatchCandidates[highestFHIRClassChildMatch][0][1]:
                             del fhirMatchCandidates[highestFHIRClassChildMatch][:];
                            
-                        fhirMatchCandidates[highestFHIRClassChildMatch].append((ehrClassChild, highestMatchStrength));
+                    # If it's greater a new individual entry to the recently cleared list. If it's the same, add another entry to this list.
+                    fhirMatchCandidates[highestFHIRClassChildMatch].append((ehrClassChild, highestMatchStrength));
                 
+                # Otherwise record this new match.
                 else:
                     fhirMatchCandidates[highestFHIRClassChildMatch].append((ehrClassChild, highestMatchStrength));
-                   
+        
+        # Post-processing candidates:
+        
+        totalChildMatches = 0;
+        # Because the number of matches isn't the only thing that's important, it's the accuracy of those matches.
+        totalMatchStrength = 0;
+             
         for fhirMatchCandidate in fhirMatchCandidates:
             
             if len(fhirMatchCandidates[fhirMatchCandidate]) > 0:
                 
-                totalChildMatches += len(fhirMatchCandidates[fhirMatchCandidate]);
+                # If there are multiple EHR children matches to a FHIR attribute with the same strength, then only one of them can be accommodated, so only increment by 1.
+                totalChildMatches += 1; 
                 
-                # if the ehr child and fhir child are linked by the name of the ehr entry, this should affect the match strength. 
-                if ehrClass.lower() in fhirMatchCandidate[0].lower() and ehrClass.lower() in fhirMatchCandidates[fhirMatchCandidate][0][0].lower():
-                    fhirMatchCandidates[fhirMatchCandidate][0] = (fhirMatchCandidates[fhirMatchCandidate][0][0], fhirMatchCandidates[fhirMatchCandidate][0][1] * FHIRTranslation.CONTEXT_WEIGHTING);
-                    
+                # All items in list have same strength, so just use first item.
                 totalMatchStrength += fhirMatchCandidates[fhirMatchCandidate][0][1];
         
         #print fhirMatchCandidates;
@@ -350,12 +360,12 @@ class FHIRTranslation():
     @staticmethod
     def translatePatient(action=None, ehrClass=None, ehrClassChild=None, fhirClassChild=None):
         
-        #print FHIRTranslation.matchStrength("MedicationType", "medicationCodeableConcept", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, False, True);
-        #print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
-        #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
+        print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
+        print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.activitydefinition.ActivityDefinition", None, None, FHIRTranslation.getPatient("4917111072"));
+        return;
     
          # Get patient record from EHR
         patientXML = FHIRTranslation.getPatient("4917111072");
