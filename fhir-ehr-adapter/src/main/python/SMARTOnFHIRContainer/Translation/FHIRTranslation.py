@@ -156,7 +156,7 @@ class FHIRTranslation():
     
     # Same as match but without thresholds to give raw match value.
     @staticmethod
-    def match(ehrClassField, fhirClassField, textSimilarityWeighting=TEXT_SIMILARITY_WEIGHTING, semanticSimilarityWeighting=SEMANTIC_SIMILARITY_WEIGHTING, grammaticalSimilarityWeighting=GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False):
+    def match(ehrClassField, fhirClassField, textSimilarityWeighting=TEXT_SIMILARITY_WEIGHTING, semanticSimilarityWeighting=SEMANTIC_SIMILARITY_WEIGHTING, grammaticalSimilarityWeighting=GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False):
         
         textSimilarity = FHIRTranslation.compositeStringSimilarity(ehrClassField, fhirClassField, FHIRTranslation.textSimilarity, highestCompositeResult) * textSimilarityWeighting;
         
@@ -186,21 +186,30 @@ class FHIRTranslation():
         
         if ( highestStrength ):
             return max(textSimilarity, max(semanticSimilarity, grammaticalSimilarity));
-        
+        if ( combined ):
+            return textSimilarity + semanticSimilarity + grammaticalSimilarity;
         else:
             return (textSimilarity + semanticSimilarity + grammaticalSimilarity) / 3.0;
         
     # See if there is a match at all, based on thresholds.
     @staticmethod
-    def matches(ehr, fhir, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True):
+    def matches(ehr, fhir, textSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, grammaticalSimilarityThreshold=OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False,average=False):
         
-        if (FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.textSimilarity, highestCompositeResult) * FHIRTranslation.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold or 
-        FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.semanticSimilarity, highestCompositeResult) * FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING >= semanticSimilarityThreshold or 
-        FHIRTranslation.compositeStringSimilarity(ehr, fhir, FHIRTranslation.grammaticalSimilarity, highestCompositeResult) * FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING >= grammaticalSimilarityThreshold):
-            return True;
-        
-        else:
-            return False;
+        if ( firstPastThreshold ):
+            
+            if ( FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined) > 0 ):
+                return True;
+            
+            else:
+                return False;
+            
+        if ( higeshtStrength or combine or average ):
+            
+            if ( FHIRTranslation.match(ehrClassChild, fhirClassChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, grammaticalSimilarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined) > FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD ):
+                return True;
+            
+            else:
+                return False;
     
     @staticmethod
     def getEHRClassChildren(xml, ehrClass):
