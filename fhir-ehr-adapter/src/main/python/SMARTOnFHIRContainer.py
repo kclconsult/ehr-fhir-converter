@@ -1,4 +1,4 @@
-import sys;
+import sys, time;
 
 from BaseHTTPServer import HTTPServer
 import uuid, requests, json
@@ -8,6 +8,7 @@ from FHIR.FHIRServer import FHIRServer
 from FHIR.FHIRConstants import FHIRConstants
 from Translation.FHIRTranslation import FHIRTranslation
 
+# Our middleware
 def translate():
     
     if len(sys.argv) == 2:                                                           
@@ -30,9 +31,16 @@ def translate():
     else:
         FHIRTranslation.translatePatient()
         
-def runServer():
+# The container   
+def serve():
     
     server_address = ('', 8080)
     httpd = HTTPServer(server_address, FHIRServer)
-    httpd.serve_forever()
+    print time.asctime(), "Server Starts - %s:%s" % (server_address, 8080)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    httpd.server_close()
+    print time.asctime(), "Server Stops - %s:%s" % (server_address, 8080)
     
