@@ -243,7 +243,7 @@ class Utilities(object):
             print data;
             
     @staticmethod
-    def xmlRequest(data):
+    def ehrRequest(data):
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         

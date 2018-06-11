@@ -8,7 +8,7 @@ class SystmOne(object):
     @staticmethod
     def contactAPI(call, id):
          
-         return Utilities.xmlRequest(
+         return Utilities.ehrRequest(
              
             '<Function>' + call + '</Function>' + \
             '<APIKey>' + APIVariables.KEY + '</APIKey>' + \
