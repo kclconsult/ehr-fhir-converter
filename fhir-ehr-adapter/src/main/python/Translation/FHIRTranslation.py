@@ -7,7 +7,7 @@ import pkgutil
 import pyclbr;
 
 #from models.patient import Patient
-import models;
+#import models;
 import models_full;
 
 from EHR.SystmOne import SystmOne
@@ -16,7 +16,7 @@ from Utils.Utilities import Utilities
 import importlib;
 from numpy import average
 
-class FHIRTranslation():
+class FHIRTranslation(object):
     
     MODELS_PATH = "models_full";
     
@@ -349,35 +349,7 @@ class FHIRTranslation():
     def getPatient(id):
         # return SystmOne().getPatientRecord(id);
         return xml.etree.ElementTree.parse('../../../../resources/' + FHIRTranslation.EHR_PATH + '.xml');
-    
-    if __name__ == "__main__":
-    
-        if len(sys.argv) == 2:                                                           
-            FHIRTranslation.translatePatient(0, sys.argv[1]);
-            
-        elif len(sys.argv) == 4:
-            if ( sys.argv[1] == "-c" ):
-                action = 1;
-            elif ( sys.argv[1] == "-m" ):
-                action = 2;
-            elif ( sys.argv[1] == "-M" ):
-                action = 3;
-            elif ( sys.argv[1] == "-s" ):
-                action = 4;
-            elif ( sys.argv[1] == "-g" ):
-                action = 5;
-            
-            FHIRTranslation.translatePatient(action, None, sys.argv[2], sys.argv[3]);
-            
-            #print FHIRTranslation.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, FHIRTranslation.getPatient("4917111072"));
-        #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
-        #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
-        #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
-        #print FHIRTranslation.childSimilarity("Demographics", "models_full.activitydefinition.ActivityDefinition", None, None, FHIRTranslation.getPatient("4917111072"));
-              
-        else:
-            FHIRTranslation.translatePatient()
-               
+
     @staticmethod
     def translatePatient(action=None, ehrClass=None, ehrClassChild=None, fhirClassChild=None, fhirClass=None):
     
@@ -417,8 +389,7 @@ class FHIRTranslation():
             ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), set(), False);
             
         if (len(ehrClasses)): FHIRTranslation.translatePatientInit(ehrClasses, patientXML);
-    
-    
+               
     @staticmethod
     def translatePatientInit(ehrClasses, patientXML):
         
@@ -540,4 +511,32 @@ class FHIRTranslation():
         
         # return.
         # return patientJSON
-                
+
+if __name__ == "__main__":
+        
+    ft = FHIRTranslation();
+    
+    if len(sys.argv) == 2:                                                           
+        ft.translatePatient(0, sys.argv[1]);
+        
+    elif len(sys.argv) == 4:
+        if ( sys.argv[1] == "-c" ):
+            action = 1;
+        elif ( sys.argv[1] == "-m" ):
+            action = 2;
+        elif ( sys.argv[1] == "-M" ):
+            action = 3;
+        elif ( sys.argv[1] == "-s" ):
+            action = 4;
+        elif ( sys.argv[1] == "-g" ):
+            action = 5;
+        
+        ft.translatePatient(action, None, sys.argv[2], sys.argv[3]);
+          
+    else:
+        #FHIRTranslation.translatePatient();
+        print ft.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, ft.getPatient("4917111072"));
+        #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
+        #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
+        #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
+        #print FHIRTranslation.childSimilarity("Demographics", "models_full.activitydefinition.ActivityDefinition", None, None, FHIRTranslation.getPatient("4917111072"));              
