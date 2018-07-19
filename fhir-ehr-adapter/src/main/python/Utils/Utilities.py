@@ -53,7 +53,7 @@ class Utilities(object):
     
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, addParentName=False):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -83,7 +83,7 @@ class Utilities(object):
             attributeName = attributeContainer[0];
             
             if addParentName: attributeName = attributeName + str(root.__name__); # ! Change this to add it as an extra child.
-            
+                
             if children:
                 if not callable(attribute):
                     classesToChildren[root].add(attributeName);
@@ -94,14 +94,17 @@ class Utilities(object):
                     
             else:
                 classesToChildren[root].add(attributeName);
-            
+                
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
             # Don't follow links to types that are of the root class itself.
-            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[0] not in set([j for i in classesToChildren.values() for j in i]) and attributeContainer[2] != root:
+            # and attributeContainer[0] not in set([j for i in classesToChildren.values() for j in i])
+            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[2] != root and attributeContainer[0] not in visited:
                 
-                Utilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse);
-        
+                visited.append(attributeContainer[0]);
+                Utilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, visited);
+                
+                    
         if recurse:     
             return classesToChildren;
         

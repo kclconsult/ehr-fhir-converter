@@ -1,9 +1,10 @@
 <?xml version="1.0" ?>
+<Response>
 		<Identity> 
 			<NHSNumber>4917111072</NHSNumber>
 			<StrategicReportingIdentifier>246216</StrategicReportingIdentifier>
 		</Identity>
-		<Demographics>
+		<Patient>
 			<Title>Miss</Title>
 			<FirstName>Alice</FirstName>
 			<MiddleNames/>
@@ -27,7 +28,7 @@
 			<UsualGPUserName>andrewleece2204</UsualGPUserName>
 			<CareStartDate>2015-06-10</CareStartDate>
 			<RegistrationType>Applied</RegistrationType>
-		</Demographics>
+		</Patient>
 		<Clinical>
 			<Event DateTime="2015-06-10T15:17:30" DoneAt="Surgery" DoneBy="CURCIN, Vasa (General Medical Practitioner) " EventUID="f7b1080000000000" UserName="vcurcin2304">
 				<Narrative>
@@ -155,4 +156,5 @@ wfzbagignwmnvayrssxtbcoagquqlojkkopswhqqquznbttldgnfyfdpfdfzwtjdjwonaguczlfaejnh
 </Content>
 			</Task>
 		</NonClinical>
+		</Response>
 		

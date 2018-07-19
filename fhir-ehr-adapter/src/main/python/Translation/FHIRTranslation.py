@@ -8,10 +8,10 @@ import pyclbr;
 
 #from models.patient import Patient
 #import models;
-import models_full;
-
 from EHR.SystmOne import SystmOne
 from Utils.Utilities import Utilities
+
+import models_full;
 
 import importlib;
 from numpy import average
@@ -210,7 +210,7 @@ class FHIRTranslation(object):
     def getFHIRClassChildren(fhirClass, linkedClasses):
         
         fhirElements = Utilities.getFHIRElements(fhirClass, {}, True, True, linkedClasses);
-        
+
         if linkedClasses and fhirElements != None:
             
             fhirChildAndParent = [];
@@ -219,7 +219,7 @@ class FHIRTranslation(object):
                 
                 for fhirClassChild in fhirElements[fhirClassToChildren]:
                     
-                    # If linked classes are examined, it's not just the name of the fhirChild for the supplied class added, but also the name of the fhir children in each linked class, and entries are stored as tuples, so the origin of the child can be traced.
+                    # If linked classes are examined, it's not just the name of the fhirChild for the supplied class added, but also the name of the fhir children in each linked class, and entries are stored as tuples so the origin of the child can be traced.
                     fhirChildAndParent.append((fhirClassChild, fhirClassToChildren));
             
             return fhirChildAndParent;
@@ -270,7 +270,7 @@ class FHIRTranslation(object):
                     
                     # print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
                     
-                     # If the EHR child and FHIR child are linked by the name of the EHR parent, this should affect the match strength. E.g. Medication (EHR parent) in MedicationType (EHR Child) and medicationReference (FHIR child) 
+                    # If the EHR child and FHIR child are linked by the name of the EHR parent, this should affect the match strength. E.g. Medication (EHR parent) in MedicationType (EHR Child) and medicationReference (FHIR child) 
                     if ehrClass.lower() in ehrClassChild.lower() and ehrClass.lower() in fhirClassChild[0].lower():
                          matchStrength = matchStrength * FHIRTranslation.CONTEXT_WEIGHTING;
                          
@@ -348,7 +348,7 @@ class FHIRTranslation(object):
     @staticmethod
     def getPatient(id):
         # return SystmOne().getPatientRecord(id);
-        return xml.etree.ElementTree.parse('../../../../resources/' + FHIRTranslation.EHR_PATH + '.xml');
+        return xml.etree.ElementTree.parse('../../../resources/' + FHIRTranslation.EHR_PATH + '.xml');
 
     @staticmethod
     def translatePatient(action=None, ehrClass=None, ehrClassChild=None, fhirClassChild=None, fhirClass=None):
@@ -392,7 +392,7 @@ class FHIRTranslation(object):
                
     @staticmethod
     def translatePatientInit(ehrClasses, patientXML):
-        
+    
         # Get fhirClasses
         fhirClasses = FHIRTranslation.getFHIRClasses();
     
@@ -500,11 +500,34 @@ class FHIRTranslation(object):
         
         for ehrClass in ehrFHIRMatches:
             
+            print "===========================";
             print ehrClass;
             matches = sorted(ehrFHIRMatches[ehrClass], key=lambda sortable: (sortable[1]), reverse=True);
             
             if len(matches):
-                print matches;
+                print matches[:5];
+            
+                # Match Stage 4: Match EHR children to FHIR children from chosen class.
+                children = fhirClassesToChildren[matches[0][0]][:];
+                
+                ehrChildToHighestFHIRchild = {};
+                
+                # Find matches for each of the parent matches.
+                for ehrChild in ehrClassesToChildren[ehrClass]:
+                            
+                    # Find the FHIR children of the top match. Extract the name of the FHIR class from each tuple.
+                    for fhirChild in children:
+                   
+                        # Each child is a tuple with parent as second value.
+                        matchStrength = FHIRTranslation.match(ehrChild, fhirChild[0], FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True)
+                        
+                        if ( ehrChild not in ehrChildToHighestFHIRchild or matchStrength > ehrChildToHighestFHIRchild[ehrChild][0] ): 
+                            ehrChildToHighestFHIRchild[ehrChild] = (matchStrength, fhirChild);
+                
+                print ehrChildToHighestFHIRchild;
+                
+            print "===========================";
+        
         
         # Replace values in JSON version of matching classes.
         # Utilities.getReplaceJSONKeys(patientJSON, None, list(), 'id', 'abc');
