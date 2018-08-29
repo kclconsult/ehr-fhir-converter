@@ -3,6 +3,7 @@
 src/main/python/fhir-parser/
 src/main/python/models/
 src/main/python/models_full/
+src/main/python/models_subset/
 resources/
 library/
 

@@ -18,9 +18,9 @@ from numpy import average
 
 class FHIRTranslation(object):
     
-    MODELS_PATH = "models_full";
+    MODELS_PATH = "models_subset";
     
-    EHR_PATH = "tpp-full";
+    EHR_PATH = "tpp/tpp-full";
     
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95;
@@ -51,19 +51,19 @@ class FHIRTranslation(object):
     def textSimilarity(ehrAttribute, fhirAttribute, stem=False):
         
         # Gradually more complex text similarity
-        if ehrAttribute.lower() == fhirAttribute.lower():
-            return 1.0;
+        #if ehrAttribute.lower() == fhirAttribute.lower():
+        #    return 1.0;
         
-        if ehrAttribute.lower() in fhirAttribute.lower():
-            return len(ehrAttribute) / float(len(fhirAttribute));
+        #if ehrAttribute.lower() in fhirAttribute.lower():
+        #    return len(ehrAttribute) / float(len(fhirAttribute));
         
-        if fhirAttribute.lower() in ehrAttribute.lower():
-            return len(fhirAttribute) / float(len(ehrAttribute));
+        #if fhirAttribute.lower() in ehrAttribute.lower():
+        #    return len(fhirAttribute) / float(len(ehrAttribute));
         
-        if stem:
-            stemmer = PorterStemmer()
-            ehrAttribute = stemmer.stem(ehrAttribute);
-            fhirAttribute = stemmer.stem(fhirAttribute);
+        #if stem:
+        #    stemmer = PorterStemmer()
+        #    ehrAttribute = stemmer.stem(ehrAttribute);
+        #    fhirAttribute = stemmer.stem(fhirAttribute);
         
         return fuzz.ratio(ehrAttribute, fhirAttribute) / 100.0;
     
@@ -204,12 +204,12 @@ class FHIRTranslation(object):
     
     @staticmethod
     def getEHRClassChildren(xml, ehrClass):
-        return Utilities.getXMLElements(xml.find(".//" + ehrClass), set(), True, True, False, True);
+        return Utilities.getXMLElements(xml.find(".//" + ehrClass), set(), True, False, True, True);
     
     @staticmethod
     def getFHIRClassChildren(fhirClass, linkedClasses):
         
-        fhirElements = Utilities.getFHIRElements(fhirClass, {}, True, True, linkedClasses);
+        fhirElements = Utilities.getFHIRElements(fhirClass, {}, True, False, linkedClasses);
 
         if linkedClasses and fhirElements != None:
             
@@ -536,7 +536,10 @@ class FHIRTranslation(object):
         # return patientJSON
 
 if __name__ == "__main__":
-        
+    
+    print fuzz.ratio("abd", "abc") / 100.0;
+
+
     ft = FHIRTranslation();
     
     if len(sys.argv) == 2:                                                           
