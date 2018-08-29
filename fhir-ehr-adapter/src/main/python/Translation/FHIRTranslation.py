@@ -346,6 +346,23 @@ class FHIRTranslation(object):
         return fhirClasses;
     
     @staticmethod
+    def getFHIRConnections(fhirClasses):
+        
+        connections = {};
+        
+        for fhirClass in fhirClasses:
+            
+            for connectingClass in [t for t in (Utilities.getFHIRElements(fhirClass, {}, False, True, False, [], False, True) or [])]:
+                
+                if "FHIRReference" in connectingClass.__name__ or "Extension" in connectingClass.__name__: continue;
+                
+                # Log bi-direction connection.
+                connections.setdefault(fhirClass,set()).add((connectingClass, "Out"));
+                connections.setdefault(connectingClass,set()).add((fhirClass, "In"));
+        
+        return connections;
+        
+    @staticmethod
     def getPatient(id):
         # return SystmOne().getPatientRecord(id);
         return xml.etree.ElementTree.parse('../../../resources/' + FHIRTranslation.EHR_PATH + '.xml');
@@ -393,8 +410,21 @@ class FHIRTranslation(object):
     @staticmethod
     def translatePatientInit(ehrClasses, patientXML):
     
+        # Order ehrClasses by the number of children, so we look at most nested first.
+        
+        
+        # Get outgoing connections of each ehrClass.
+        
+        
         # Get fhirClasses
         fhirClasses = FHIRTranslation.getFHIRClasses();
+        
+        # Get incoming and outgoing connections to each FHIR class.
+        for x, y in FHIRTranslation.getFHIRConnections(fhirClasses).iteritems():
+            print "";
+            print str(x) + " " + str(y);
+        
+        return;
     
         # Prepare lists of classes and children.
         ehrClassesToChildren = {};
@@ -451,6 +481,8 @@ class FHIRTranslation(object):
             for fhirClass in fhirClasses:
                 
                 childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren);
+                
+                # If any of the outgoing connections from the EHR class (child elements) now have FHIR matches, see if that set of convertible connections corresponds to the connections (incoming and outgoing) of this FHIR class. Add this result to the child similarity.
                 
                 childMatches.append((fhirClass, childSimilarity));
 
@@ -536,9 +568,6 @@ class FHIRTranslation(object):
         # return patientJSON
 
 if __name__ == "__main__":
-    
-    print fuzz.ratio("abd", "abc") / 100.0;
-
 
     ft = FHIRTranslation();
     
@@ -560,8 +589,8 @@ if __name__ == "__main__":
         ft.translatePatient(action, None, sys.argv[2], sys.argv[3]);
           
     else:
-        #FHIRTranslation.translatePatient();
-        print ft.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, ft.getPatient("4917111072"));
+        FHIRTranslation.translatePatient();
+        #print ft.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, ft.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));

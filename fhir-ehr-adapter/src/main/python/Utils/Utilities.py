@@ -53,7 +53,7 @@ class Utilities(object):
     
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeOverAttributeName=False):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -86,14 +86,23 @@ class Utilities(object):
                 
             if children:
                 if not callable(attribute):
-                    classesToChildren[root].add(attributeName);
+                    if attributeOverAttributeName:
+                        classesToChildren[root].add(attributeContainer[2]);
+                    else:
+                        classesToChildren[root].add(attributeName);
                     
             if parents:
                 if callable(attribute):
-                    classesToChildren[root].add(attributeName);
+                    if attributeOverAttributeName:
+                        classesToChildren[root].add(attributeContainer[2]);
+                    else:
+                        classesToChildren[root].add(attributeName);
                     
             else:
-                classesToChildren[root].add(attributeName);
+                if attributeOverAttributeName:
+                    classesToChildren[root].add(attributeContainer[2]);
+                else:
+                    classesToChildren[root].add(attributeName);
                 
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
