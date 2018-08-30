@@ -20,8 +20,9 @@ import models_full.medicationrequest;
 import models_full.patient;
 import models_full.sequence;
 
-
 class Utilities(object):
+    
+    MODELS_PATH = "models_subset";
     
     # Find different grammatical forms of words in camelcase string.
     @staticmethod
@@ -51,9 +52,29 @@ class Utilities(object):
         
         return lemmas;
     
+    @staticmethod
+    def processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName):
+        
+        if ("FHIRReference" in attributeContainer[2].__name__ and resolveFHIRReferences): 
+            with open(Utilities.MODELS_PATH + "/" + str(root).split(".")[1] + ".py", 'r') as file:
+                for line in file:
+                    print attributeName + " " + line;
+                    if attributeName in line:
+                        print "!" + line;
+                        return;
+            print str(attributeContainer[2].__name__) + " " + str(attributeName) + " " + str(attributeContainer);
+            sys.exit();
+        if attributeTypeOverAttributeName:
+            classesToChildren[root].add(attributeContainer[2]);
+        else:
+            classesToChildren[root].add(attributeName);
+        
+        
+        
+                        
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeOverAttributeName=False):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -82,27 +103,20 @@ class Utilities(object):
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             attributeName = attributeContainer[0];
             
+            #print str(attributeContainer);
+            
             if addParentName: attributeName = attributeName + str(root.__name__); # ! Change this to add it as an extra child.
                 
             if children:
                 if not callable(attribute):
-                    if attributeOverAttributeName:
-                        classesToChildren[root].add(attributeContainer[2]);
-                    else:
-                        classesToChildren[root].add(attributeName);
+                    Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
                     
             if parents:
                 if callable(attribute):
-                    if attributeOverAttributeName:
-                        classesToChildren[root].add(attributeContainer[2]);
-                    else:
-                        classesToChildren[root].add(attributeName);
+                    Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
                     
             else:
-                if attributeOverAttributeName:
-                    classesToChildren[root].add(attributeContainer[2]);
-                else:
-                    classesToChildren[root].add(attributeName);
+                Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
                 
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
