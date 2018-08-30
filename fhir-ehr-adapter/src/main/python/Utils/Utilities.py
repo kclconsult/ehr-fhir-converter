@@ -19,6 +19,7 @@ import models_full.medicationadministration;
 import models_full.medicationrequest;
 import models_full.patient;
 import models_full.sequence;
+from _ast import Attribute
 
 class Utilities(object):
     
@@ -55,26 +56,14 @@ class Utilities(object):
     @staticmethod
     def processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName):
         
-        if ("FHIRReference" in attributeContainer[2].__name__ and resolveFHIRReferences): 
-            with open(Utilities.MODELS_PATH + "/" + str(root).split(".")[1] + ".py", 'r') as file:
-                for line in file:
-                    print attributeName + " " + line;
-                    if attributeName in line:
-                        print "!" + line;
-                        return;
-            print str(attributeContainer[2].__name__) + " " + str(attributeName) + " " + str(attributeContainer);
-            sys.exit();
         if attributeTypeOverAttributeName:
             classesToChildren[root].add(attributeContainer[2]);
         else:
             classesToChildren[root].add(attributeName);
-        
-        
-        
-                        
+                     
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -97,6 +86,47 @@ class Utilities(object):
             if ( not callable(getattr(parent, "elementProperties", None)) ): continue;
             attributes = [item for item in attributes if item not in parent.elementProperties(parent())]
         
+        # If the type of an attribute is simply 'FHIRReference' we aim to resolve the scope of this reference by adding duplicate the attribute for each potential reference type.
+        if resolveFHIRReferences:
+            
+            #print "---> " + str(root);
+            
+            newAttributes = [];
+            
+            for attributeContainer in attributes:
+                
+                if ( "FHIRReference" in attributeContainer[2].__name__ ): 
+                    
+                    #print attributeContainer[0];
+                    
+                    sourceLines = inspect.getsource(root).split("\n");
+                    
+                    for sourceLine in sourceLines:
+                        
+                        if ( "self." + attributeContainer[0] in sourceLine ):
+                            
+                            #print sourceLine;
+                            
+                            # If the list of possible references happens not to be two lines later, try three lines later.
+                            if "FHIRReference" not in sourceLines[sourceLines.index(sourceLine) + 2]:
+                                index = sourceLines.index(sourceLine) + 3;
+                            else:
+                                index = sourceLines.index(sourceLine) + 2;
+                            
+                            for possibleFHIRReference in inspect.getsource(root).split("\n")[index].split("`")[3].split(","):
+                                
+                                if possibleFHIRReference.strip() in [item.__name__ for item in otherFHIRClasses]:
+                                    
+                                    attributeContainerAsList = list(attributeContainer);
+                                    attributeContainerAsList.insert(2, otherFHIRClasses[[item.__name__ for item in otherFHIRClasses].index(possibleFHIRReference.strip())]);
+                                    attributeContainer = tuple(attributeContainerAsList);
+                                    newAttributes.append(attributeContainer);
+                                    
+                else:
+                    newAttributes.append(attributeContainer);
+        
+            attributes = newAttributes;
+    
         # For all attributes of this class (minus attributes of parent, which are typically generic).
         for attributeContainer in attributes:
             

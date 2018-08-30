@@ -352,7 +352,7 @@ class FHIRTranslation(object):
         
         for fhirClass in fhirClasses:
             
-            for connectingClass in [t for t in (Utilities.getFHIRElements(fhirClass, {}, False, True, False, [], False, True, True) or [])]:
+            for connectingClass in [t for t in (Utilities.getFHIRElements(fhirClass, {}, False, True, False, [], False, True, True, fhirClasses) or [])]:
                 
                 if "FHIRReference" in connectingClass.__name__ or "Extension" in connectingClass.__name__: continue;
                 
