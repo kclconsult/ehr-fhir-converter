@@ -19,7 +19,10 @@ import models_full.medicationadministration;
 import models_full.medicationrequest;
 import models_full.patient;
 import models_full.sequence;
-from _ast import Attribute
+
+import models_subset.practitioner;
+import models_subset.patient;
+import models_subset.coding;
 
 class Utilities(object):
     
