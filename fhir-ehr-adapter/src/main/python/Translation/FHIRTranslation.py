@@ -46,6 +46,8 @@ class FHIRTranslation(object):
     
     CONTEXT_WEIGHTING = 2;
     
+    EXCLUDED_FHIR_CLASSES = { "Extension", "FHIRReference" };
+    
     # Similarity Metric A
     @staticmethod
     def textSimilarity(ehrAttribute, fhirAttribute, stem=False):
@@ -203,8 +205,8 @@ class FHIRTranslation(object):
                 return False;
     
     @staticmethod
-    def getEHRClassChildren(xml, ehrClass):
-        return Utilities.getXMLElements(xml.find(".//" + ehrClass), set(), True, False, True, True);
+    def getEHRClassChildren(xml, ehrClass, children=True, parents=False):
+        return list(set().union(*Utilities.getXMLElements(xml.find(".//" + ehrClass), {}, children, parents, True, True).values()));
     
     @staticmethod
     def getFHIRClassChildren(fhirClass, linkedClasses):
@@ -244,14 +246,14 @@ class FHIRTranslation(object):
         else:
             fhirClassChildren = FHIRTranslation.getFHIRClassChildren(fhirClass, linkedClasses);
         
-        if ( fhirClassChildren == None ): return 0;
+        if ( fhirClassChildren == None or fhirClass.__name__ in FHIRTranslation.EXCLUDED_FHIR_CLASSES ): return 0;
         
         # Because the same FHIR class field may be a candidate for more than one EHR attribute, and we cannot accommodate more than one attribute in a field, we keep track of these multiple matches, so as to only count them once in our total child matches, and to pick the strongest match for our strength indications. 
         fhirMatchCandidates = {};
         
         for fhirClassChild in fhirClassChildren: fhirMatchCandidates[fhirClassChild] = [];
         
-        # For each child of the EHR parent (also includes ATTRIBUTES (same tag) of EHR parent and children).
+        # For each child of the EHR parent (can also includes ATTRIBUTES (same tag) of EHR parent and children).
         for ehrClassChild in ehrClassChildren:
             
             highestMatchStrength = 0;
@@ -335,7 +337,7 @@ class FHIRTranslation(object):
             
             # Don't use test modules as a potential match.
             if "_tests" in fhirModule: continue;
-             
+            
             for fhirClass in pyclbr.readmodule(FHIRTranslation.MODELS_PATH + "." + fhirModule).keys():
                 
                 # Import this module as we'll need it later to examine content of FHIR Class
@@ -354,7 +356,7 @@ class FHIRTranslation(object):
             
             for connectingClass in [t for t in (Utilities.getFHIRElements(fhirClass, {}, False, True, False, [], False, True, True, fhirClasses) or [])]:
                 
-                if "FHIRReference" in connectingClass.__name__ or "Extension" in connectingClass.__name__: continue;
+                if connectingClass.__name__ in FHIRTranslation.EXCLUDED_FHIR_CLASSES: continue;
                 
                 # Log bi-direction connection.
                 connections.setdefault(fhirClass,set()).add((connectingClass, "Out"));
@@ -403,16 +405,13 @@ class FHIRTranslation(object):
             print FHIRTranslation.childSimilarity(ehrClass, fhirClass, None, None, FHIRTranslation.getPatient("4917111072"));
             
         else:
-            ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), set(), False);
+            ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), {}, False); # ! Should only be EHR classes with children.
             
         if (len(ehrClasses)): FHIRTranslation.translatePatientInit(ehrClasses, patientXML);
-               
+                  
     @staticmethod
     def translatePatientInit(ehrClasses, patientXML):
     
-        # Order ehrClasses by the number of children, so we look at most nested first.
-        
-        
         # Get outgoing connections of each ehrClass.
         
         
@@ -420,18 +419,16 @@ class FHIRTranslation(object):
         fhirClasses = FHIRTranslation.getFHIRClasses();
         
         # Get incoming and outgoing connections to each FHIR class.
-        for x, y in FHIRTranslation.getFHIRConnections(fhirClasses).iteritems():
-            print "";
-            print str(x) + " " + str(y);
+        fhirConnections = FHIRTranslation.getFHIRConnections(fhirClasses);
         
-        return;
-    
         # Prepare lists of classes and children.
         ehrClassesToChildren = {};
+        ehrClassesToParents = {}
         
-        for ehrClass in ehrClasses:
+        for ehrClass in list(set().union(*ehrClasses.values())):
             
             ehrClassesToChildren[ehrClass] = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass);
+            ehrClassesToParents[ehrClass] = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass, False, True);
         
         fhirClassesToChildren = {};
         
@@ -452,8 +449,8 @@ class FHIRTranslation(object):
         
         ehrClassesToRemove = set();
         
-        for ehrClass in ehrClasses: # ! Should be EHR classes with children.
-        
+        for ehrClass in list(set().union(*ehrClasses.values())): 
+            
             matches = 0;
             
             for fhirClass in fhirClasses:
@@ -467,49 +464,75 @@ class FHIRTranslation(object):
                 ehrFHIRMatches[ehrClass] = [(fhirMatch, FHIRTranslation.childSimilarity(ehrClass, fhirMatch, ehrClassesToChildren, fhirClassesToChildren))];
                 ehrClassesToRemove.add(ehrClass);
         
-        ehrClasses = ehrClasses - ehrClassesToRemove;
+        # Remove those EHR classes that have now been matched from the list of EHR classes to match. ~MDC Probably could be shorter.
+        for depth in ehrClasses:
+            for ehrClassToRemove in ehrClassesToRemove:
+                if ( ehrClassToRemove in ehrClasses[depth] ):
+                    ehrClasses[depth].remove(ehrClassToRemove);
+    
+        # Match Stage 2: Child matches 
         
-        # Match Stage 2: Child matches
-        
-        # Match EHR to FHIR classes based on similarity between EHR attributes and nested tags and FHIR class attributes.
-        for ehrClass in ehrClasses:
+        # Match EHR to FHIR classes based on similarity between EHR attributes and nested tags and FHIR class attributes. Look at most nested first.
+        for ehrClassesAtDepth in reversed(sorted(ehrClasses.values())):
             
-            ehrFHIRMatches[ehrClass] = [];
+            print ehrClassesAtDepth;
             
-            childMatches = [];
-            
-            for fhirClass in fhirClasses:
+            for ehrClass in ehrClassesAtDepth:
                 
-                childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren);
+                ehrFHIRMatches[ehrClass] = [];
                 
-                # If any of the outgoing connections from the EHR class (child elements) now have FHIR matches, see if that set of convertible connections corresponds to the connections (incoming and outgoing) of this FHIR class. Add this result to the child similarity.
+                childMatches = [];
                 
-                childMatches.append((fhirClass, childSimilarity));
-
-            childMatches = sorted(childMatches, key=lambda sortable: (sortable[1]), reverse=True);
-            
-            for childMatch in childMatches:
-                
-                if ( childMatch[1] > FHIRTranslation.CHILD_MATCH_THRESHOLD ):
-                    ehrFHIRMatches[ehrClass].append(childMatch);
+                for fhirClass in fhirClasses:
                     
-            # If there are no candidates for an ehrClass based on child matches (i.e. none of the matches are above the threshold), then choose the highest.
-            if len(ehrFHIRMatches[ehrClass]) == 0:
+                    childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren);
+                    
+                    # If any of the outgoing connections from the EHR class (child elements) now have FHIR matches, see if that set of convertible connections corresponds to the connections (incoming and outgoing) of this FHIR class. Add this result to the child similarity.
+                    commonConnections = 0;
+                    
+                    for outgoingChild in ehrClassesToParents[ehrClass]:
+                        
+                        if outgoingChild in ehrFHIRMatches.keys():
+                            
+                            if fhirClass not in fhirConnections.keys(): continue;
+                            
+                            for connection in [fhirConnection[0] for fhirConnection in fhirConnections[fhirClass]]:
+                                
+                                if ehrFHIRMatches[outgoingChild][0][0] == connection:
+                                    
+                                    commonConnections += 1;
+                                    print str(outgoingChild) + " --> " + str(ehrFHIRMatches[outgoingChild][0][0]) + " " + str(connection) + " " + str(ehrClass) + " " + str(fhirClass);
+                                    print str(ehrFHIRMatches[outgoingChild]);
+                                    sys.exit();
+                                    
+                    childMatches.append((fhirClass, childSimilarity, commonConnections));
+    
+                childMatches = sorted(childMatches, key=lambda sortable: (sortable[1]), reverse=True);
                 
-                firstChildMatch = childMatches[0];
-                highestMatch = firstChildMatch[1];
-                ehrFHIRMatches[ehrClass].append(firstChildMatch);
-                
-                # Skip the match that has just been added.
-                iterChildMatches = iter(childMatches);
-                next(iterChildMatches);
-                
-                for childMatch in iterChildMatches:
-                    if ( childMatch[1] == highestMatch ):
+                for childMatch in childMatches:
+                    
+                    if ( childMatch[1] > FHIRTranslation.CHILD_MATCH_THRESHOLD ):
                         ehrFHIRMatches[ehrClass].append(childMatch);
-                    else:
-                        break;
-        
+                        
+                # If there are no candidates for an ehrClass based on child matches (i.e. none of the matches are above the threshold), then choose the highest.
+                if len(ehrFHIRMatches[ehrClass]) == 0:
+                    
+                    firstChildMatch = childMatches[0];
+                    highestMatch = firstChildMatch[1];
+                    ehrFHIRMatches[ehrClass].append(firstChildMatch);
+                    
+                    # Skip the match that has just been added.
+                    iterChildMatches = iter(childMatches);
+                    next(iterChildMatches);
+                    
+                    for childMatch in iterChildMatches:
+                        if ( childMatch[1] == highestMatch ):
+                            ehrFHIRMatches[ehrClass].append(childMatch);
+                        else:
+                            break;
+                
+                print ehrFHIRMatches[ehrClass];
+                
         # Match Stage 3: Fuzzy parent matches
         
         # Now decide between multiples matches based upon names of parent classes.
@@ -537,7 +560,7 @@ class FHIRTranslation(object):
             matches = sorted(ehrFHIRMatches[ehrClass], key=lambda sortable: (sortable[1]), reverse=True);
             
             if len(matches):
-                print matches[:5];
+                print matches;
             
                 # Match Stage 4: Match EHR children to FHIR children from chosen class.
                 children = fhirClassesToChildren[matches[0][0]][:];

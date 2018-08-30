@@ -26,7 +26,7 @@ if __name__ == "__main__":
           
     else:
         FHIRTranslation.translatePatient();
-        #print ft.childSimilarity("Medication", "models_full.claimresponse.ClaimResponsePayment", None, None, ft.getPatient("4917111072"));
+        #print ft.childSimilarity("ClinicalCode", "models_full.patient.Patient", None, None, ft.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));

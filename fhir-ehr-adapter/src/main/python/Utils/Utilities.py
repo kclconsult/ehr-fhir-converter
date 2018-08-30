@@ -163,28 +163,33 @@ class Utilities(object):
         
         else:
             return classesToChildren[root];
-    
+            
     @staticmethod
-    def getXMLElements(root, set, children=True, parents=True, recurse=True, attributes=False):
+    def getXMLElements(root, depthToElement={}, children=True, parents=True, recurse=True, attributes=False, depth=0):
         
         for elem in root.getchildren():
             
             if children:
                 if len(elem.getchildren()) == 0:
-                    set.add(elem.tag);
-                    if (attributes): set = set.union(elem.attrib.keys());
+                    depthToElement.setdefault(depth, set()).add(elem.tag);
+                    if (attributes): 
+                        for attribute in elem.attrib.keys():
+                            depthToElement.setdefault(depth, set()).add(attribute);
                     
             if parents:
                 if len(elem.getchildren()) > 0:
-                    set.add(elem.tag);
-                    if (attributes): set = set.union(elem.attrib.keys());
+                    depthToElement.setdefault(depth, set()).add(elem.tag);
+                    #set.add(elem.tag);
+                    #if (attributes): set = set.union(elem.attrib.keys()); ~MDC Attributes always children?
                     
             else:
-                set.add(elem.tag);
+                depthToElement.setdefault(depth, set()).add(elem.tag);
             
-            if ( recurse ): Utilities.getXMLElements(elem, set, children, parents, recurse);
+            if ( recurse ): 
+                # Record depth allowing us to order ehrClasses by tree position, so we look at most nested first.
+                Utilities.getXMLElements(elem, depthToElement, children, parents, recurse, attributes, depth+1);
             
-        return set
+        return depthToElement
     
     @staticmethod 
     def capitalToSeparation(word):
