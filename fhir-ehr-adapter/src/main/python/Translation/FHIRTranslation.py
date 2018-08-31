@@ -206,7 +206,14 @@ class FHIRTranslation(object):
     
     @staticmethod
     def getEHRClassChildren(xml, ehrClass, children=True, parents=False):
-        return list(set().union(*Utilities.getXMLElements(xml.find(".//" + ehrClass), {}, children, parents, True, True).values()));
+        
+        # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to choose that class that has the most children (i.e. the most examples of the schema being used).
+        highestChildren = xml.find(".//" + ehrClass)
+        for ehrClassExample in xml.findall(".//" + ehrClass):
+            if ( len(ehrClassExample.getchildren()) > len(highestChildren.getchildren()) ):
+                highestChildren = ehrClassExample;
+        
+        return list(set().union(*Utilities.getXMLElements(highestChildren, {}, children, parents, True, True).values()));
     
     @staticmethod
     def getFHIRClassChildren(fhirClass, linkedClasses):
@@ -253,8 +260,6 @@ class FHIRTranslation(object):
         
         if ( fhirClassChildren == None or fhirClassExclusion in FHIRTranslation.EXCLUDED_FHIR_CLASSES ): return 0;
         
-        print ehrClassChildren;
-        print fhirClassChildren;
         # Because the same FHIR class field may be a candidate for more than one EHR attribute, and we cannot accommodate more than one attribute in a field, we keep track of these multiple matches, so as to only count them once in our total child matches, and to pick the strongest match for our strength indications. 
         fhirMatchCandidates = {};
         
@@ -489,15 +494,9 @@ class FHIRTranslation(object):
             
             for fhirClass in fhirClasses:
                 
-                if ehrClass == "ClinicalCode":
-                    print fhirClass;
-                    
                 childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, None, fhirClassesToChildren, FHIRTranslation.getPatient("4917111072"));
                                 
                 childMatches.append((fhirClass, childSimilarity));
-                
-                if ehrClass == "ClinicalCode":
-                    print childSimilarity;
                 
             childMatches = sorted(childMatches, key=lambda sortable: (sortable[1]), reverse=True);
             
@@ -524,7 +523,7 @@ class FHIRTranslation(object):
                     else:
                         break;
         
-        #print ehrFHIRMatches;
+        print ehrFHIRMatches;
         return;
            
         # Match Stage 3: Fuzzy parent matches
