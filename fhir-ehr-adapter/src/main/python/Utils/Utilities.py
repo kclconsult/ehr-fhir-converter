@@ -185,7 +185,7 @@ class Utilities(object):
                     #set.add(elem.tag);
                     #if (attributes): set = set.union(elem.attrib.keys()); ~MDC Attributes always children?
                     
-            else:
+            if not children and not parents:
                 depthToElement.setdefault(depth, set()).add(elem.tag);
             
             if ( recurse ): 

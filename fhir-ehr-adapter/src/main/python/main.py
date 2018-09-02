@@ -26,6 +26,8 @@ if __name__ == "__main__":
           
     else:
         FHIRTranslation.translatePatient();
+        #print FHIRTranslation.match("scheme", "system", FHIRTranslation.TEXT_SIMILARITY_WEIGHTING,  FHIRTranslation.SEMANTIC_SIMILARITY_WEIGHTING,  FHIRTranslation.GRAMMATICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
+        #print FHIRTranslation.matches("scheme", "system", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD);
         #print ft.childSimilarity("ClinicalCode", "models_subset.coding.Coding", None, None, ft.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));

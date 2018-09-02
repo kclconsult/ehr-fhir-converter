@@ -40,7 +40,7 @@ class FHIRTranslation(object):
     # If some metrics are too generous (e.g. semantic matching 'address' and 'reference'), then we can reduce their 'contribution' to the measure of similarity using a weighting.
     TEXT_SIMILARITY_WEIGHTING = 1;
     
-    SEMANTIC_SIMILARITY_WEIGHTING = 0.8;
+    SEMANTIC_SIMILARITY_WEIGHTING = 0.95;
     
     GRAMMATICAL_SIMILARITY_WEIGHTING = 1;
     
@@ -98,7 +98,7 @@ class FHIRTranslation(object):
                 if not FHIRTranslation.textSimilarity(synonym, ehrAttribute) == 1.0 and similarity > highestSimilarity and FHIRTranslation.textMatch(Utilities.separationToCapital(synonym), fhirAttribute):
                     
                     highestSimilarity = similarity;
-                    
+                   
         return highestSimilarity;    
      
     # Similarity Metric C
@@ -205,6 +205,11 @@ class FHIRTranslation(object):
                 return False;
     
     @staticmethod
+    def getEHRClasses(patientXML, children=True, parents=False):
+        
+        return Utilities.getXMLElements(patientXML.find("Response"), {}, False);
+        
+    @staticmethod
     def getEHRClassChildren(xml, ehrClass, children=True, parents=False):
         
         # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to choose that class that has the most children (i.e. the most examples of the schema being used).
@@ -213,7 +218,12 @@ class FHIRTranslation(object):
             if ( len(ehrClassExample.getchildren()) > len(highestChildren.getchildren()) ):
                 highestChildren = ehrClassExample;
         
-        return list(set().union(*Utilities.getXMLElements(highestChildren, {}, children, parents, True, True).values()));
+        children = Utilities.getXMLElements(highestChildren, {}, children, parents, True, True);
+        
+        if 0 in children.keys():
+            return children[0];
+        else:
+            return {};
     
     @staticmethod
     def getFHIRClassChildren(fhirClass, linkedClasses):
@@ -371,11 +381,13 @@ class FHIRTranslation(object):
         
         for fhirClass in fhirClasses:
             
+            if fhirClass in FHIRTranslation.EXCLUDED_FHIR_CLASSES: continue;
+            
             for connectingClass in [t for t in (Utilities.getFHIRElements(fhirClass, {}, False, True, False, [], False, True, True, fhirClasses) or [])]:
                 
                 if connectingClass.__name__ in FHIRTranslation.EXCLUDED_FHIR_CLASSES: continue;
                 
-                # Log bi-direction connection.
+                # Log bi-directional connection.
                 connections.setdefault(fhirClass,set()).add((connectingClass, "Out"));
                 connections.setdefault(connectingClass,set()).add((fhirClass, "In"));
         
@@ -422,8 +434,8 @@ class FHIRTranslation(object):
             print FHIRTranslation.childSimilarity(ehrClass, fhirClass, None, None, FHIRTranslation.getPatient("4917111072"));
             
         else:
-            ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), {}, False); # ! Should only be EHR classes with children.
-            
+            ehrClasses = FHIRTranslation.getEHRClasses(patientXML);
+        
         if (len(ehrClasses)): FHIRTranslation.translatePatientInit(ehrClasses, patientXML);
                   
     @staticmethod
@@ -442,8 +454,13 @@ class FHIRTranslation(object):
         
         for ehrClass in list(set().union(*ehrClasses.values())):
             
-            ehrClassesToChildren[ehrClass] = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass);
-            ehrClassesToParents[ehrClass] = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass, False, True);
+            children = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass, True, False);
+            if len(children):
+                ehrClassesToChildren[ehrClass] = children;
+                
+            parents = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass, False, True);
+            if len (parents):
+                ehrClassesToParents[ehrClass] = parents;
         
         fhirClassesToChildren = {};
         
@@ -454,7 +471,8 @@ class FHIRTranslation(object):
             if ( children != None ):
                 fhirClassesToChildren[fhirClass] = children;
         
-        # Remove FHIR classes that do not have children (typically 'type' classes).
+        # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
+        ehrClasses = ehrClassesToChildren.keys();
         fhirClasses = fhirClassesToChildren.keys();
         
         # Match components of patient record from EHR to components from JSON representation
@@ -522,9 +540,6 @@ class FHIRTranslation(object):
                         ehrFHIRMatches[ehrClass].append(childMatch);
                     else:
                         break;
-        
-        print ehrFHIRMatches;
-        return;
            
         # Match Stage 3: Fuzzy parent matches
         
@@ -538,20 +553,16 @@ class FHIRTranslation(object):
             for fhirClassChildSimilarity in ehrFHIRMatches[ehrClass]:
                 
                 similarity = FHIRTranslation.match(ehrClass, fhirClassChildSimilarity[0].__name__);
-                lst = list(fhirClassChildSimilarity)
+                asList = list(fhirClassChildSimilarity)
                 # Add the parent similarity to the child similarity to get an overall similarity value.
-                lst[1] = lst[1] + similarity;
-                fhirClassChildSimilarity = tuple(lst)
+                asList[1] = asList[1] + similarity;
+                fhirClassChildSimilarity = tuple(asList)
                 fhirClassChildParentSimilarity.append(fhirClassChildSimilarity);
             
             ehrFHIRMatches[ehrClass] = fhirClassChildParentSimilarity;              
         
         # Match Stage 3.5: 
         for ehrClass in list(set().union(*ehrClasses.values())):
-                
-            ehrFHIRMatches[ehrClass] = [];
-            
-            childMatches = [];
             
             for fhirClass in fhirClasses:
                 
@@ -566,16 +577,23 @@ class FHIRTranslation(object):
                         
                         for connection in [fhirConnection[0] for fhirConnection in fhirConnections[fhirClass]]:
                             
-                            print ehrFHIRMatches[outgoingChild];
-                            
                             if ehrFHIRMatches[outgoingChild][0][0] == connection:
                                 
                                 commonConnections += 1;
-                                print str(outgoingChild) + " --> " + str(ehrFHIRMatches[outgoingChild][0][0]) + " " + str(connection) + " " + str(ehrClass) + " " + str(fhirClass);
-                                print str(ehrFHIRMatches[outgoingChild]);
-        
-        return;
-                               
+                                #print str(outgoingChild) + " is a child of " + str(ehrClass) + ". " + str(outgoingChild) + " has been matched to " + str(ehrFHIRMatches[outgoingChild][0][0]) + " in FHIR, connecting the two. " + str(fhirClass) + " is also connected to " + str(connection) + ", so " + str(ehrClass) + " and " + str(fhirClass) + " are related.";
+                                
+                                for match in ehrFHIRMatches[ehrClass]:
+                                    
+                                    if match[0] == fhirClass:
+                                        
+                                        if len(match) == 3:
+                                            asList = list(match)
+                                            asList[2] = asList[2] + 1;
+                                            ehrFHIRMatches[ehrClass][ehrFHIRMatches[ehrClass].index(match)] = tuple(asList)
+                                        
+                                        else:
+                                            ehrFHIRMatches[ehrClass][ehrFHIRMatches[ehrClass].index(match)] = match + (1,);
+                                         
         for ehrClass in ehrFHIRMatches:
             
             print "===========================";
@@ -586,7 +604,7 @@ class FHIRTranslation(object):
                 print matches;
             
                 # Match Stage 4: Match EHR children to FHIR children from chosen class.
-                children = fhirClassesToChildren[matches[0][0]][:];
+                children = fhirClassesToChildren[matches[0][0]]; # [:]
                 
                 ehrChildToHighestFHIRchild = {};
                 
