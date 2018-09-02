@@ -207,7 +207,8 @@ class FHIRTranslation(object):
     @staticmethod
     def getEHRClasses(patientXML, children=True, parents=False):
         
-        return Utilities.getXMLElements(patientXML.find("Response"), {}, False);
+        # Combines all value in dictionary of EHR depths.
+        return set(set().union(*Utilities.getXMLElements(patientXML.find("Response"), {}, False).values()));
         
     @staticmethod
     def getEHRClassChildren(xml, ehrClass, children=True, parents=False):
@@ -218,10 +219,13 @@ class FHIRTranslation(object):
             if ( len(ehrClassExample.getchildren()) > len(highestChildren.getchildren()) ):
                 highestChildren = ehrClassExample;
         
-        children = Utilities.getXMLElements(highestChildren, {}, children, parents, True, True);
+        ehrClassChildren = Utilities.getXMLElements(highestChildren, {}, children, parents, True, True);
         
-        if 0 in children.keys():
-            return children[0];
+        if ( children and len(highestChildren.attrib.keys()) ):
+            ehrClassChildren.setdefault(0, set()).update(highestChildren.attrib.keys());
+        
+        if 0 in ehrClassChildren.keys():
+            return ehrClassChildren[0];
         else:
             return {};
     
@@ -452,14 +456,14 @@ class FHIRTranslation(object):
         # Get outgoing connections of each ehrClass.
         ehrClassesToParents = {}
         
-        for ehrClass in list(set().union(*ehrClasses.values())):
+        for ehrClass in ehrClasses:
             
             children = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass, True, False);
             if len(children):
                 ehrClassesToChildren[ehrClass] = children;
                 
             parents = FHIRTranslation.getEHRClassChildren(patientXML, ehrClass, False, True);
-            if len (parents):
+            if len(parents):
                 ehrClassesToParents[ehrClass] = parents;
         
         fhirClassesToChildren = {};
@@ -472,7 +476,7 @@ class FHIRTranslation(object):
                 fhirClassesToChildren[fhirClass] = children;
         
         # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
-        ehrClasses = ehrClassesToChildren.keys();
+        ehrClasses = set(ehrClassesToChildren.keys());
         fhirClasses = fhirClassesToChildren.keys();
         
         # Match components of patient record from EHR to components from JSON representation
@@ -482,7 +486,7 @@ class FHIRTranslation(object):
         
         ehrClassesToRemove = set();
         
-        for ehrClass in list(set().union(*ehrClasses.values())): 
+        for ehrClass in ehrClasses: 
             
             matches = 0;
             
@@ -497,14 +501,15 @@ class FHIRTranslation(object):
                 ehrFHIRMatches[ehrClass] = [(fhirMatch, FHIRTranslation.childSimilarity(ehrClass, fhirMatch, ehrClassesToChildren, fhirClassesToChildren))];
                 ehrClassesToRemove.add(ehrClass);
         
+        ehrClasses = ehrClasses - ehrClassesToRemove;
         # Remove those EHR classes that have now been matched from the list of EHR classes to match. ~MDC Probably could be shorter.
-        for depth in ehrClasses:
-            for ehrClassToRemove in ehrClassesToRemove:
-                if ( ehrClassToRemove in ehrClasses[depth] ):
-                    ehrClasses[depth].remove(ehrClassToRemove);
+        #for depth in ehrClasses:
+        #    for ehrClassToRemove in ehrClassesToRemove:
+        #        if ( ehrClassToRemove in ehrClasses[depth] ):
+        #            ehrClasses[depth].remove(ehrClassToRemove);
     
         # Match Stage 2: Child matches 
-        for ehrClass in list(set().union(*ehrClasses.values())):
+        for ehrClass in ehrClasses:
             
             ehrFHIRMatches[ehrClass] = [];
             
@@ -562,18 +567,18 @@ class FHIRTranslation(object):
             ehrFHIRMatches[ehrClass] = fhirClassChildParentSimilarity;              
         
         # Match Stage 3.5: 
-        for ehrClass in list(set().union(*ehrClasses.values())):
+        for ehrClass in ehrClassesToParents.keys():
             
             for fhirClass in fhirClasses:
                 
-                # If any of the outgoing connections from the EHR class (child elements) now have FHIR matches, see if that set of convertible connections corresponds to the connections (incoming and outgoing) of this FHIR class. Add this result to the child similarity.
+                # If any of the outgoing connections from the EHR class (child, parent elements) now have FHIR matches, see if that set of convertible connections corresponds to the connections (incoming and outgoing) of this FHIR class. Add this result to the child similarity.
                 commonConnections = 0;
                 
                 for outgoingChild in ehrClassesToParents[ehrClass]:
                     
                     if outgoingChild in ehrFHIRMatches.keys():
                         
-                        if fhirClass not in fhirConnections.keys(): continue;
+                        if fhirClass not in fhirConnections.keys() or ehrClass not in ehrFHIRMatches: continue;
                         
                         for connection in [fhirConnection[0] for fhirConnection in fhirConnections[fhirClass]]:
                             

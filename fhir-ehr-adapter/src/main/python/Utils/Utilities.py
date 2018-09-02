@@ -172,15 +172,15 @@ class Utilities(object):
         
         for elem in root.getchildren():
             
-            if children:
+            if children: # if is child
                 if len(elem.getchildren()) == 0:
                     depthToElement.setdefault(depth, set()).add(elem.tag);
                     if (attributes): 
                         for attribute in elem.attrib.keys():
                             depthToElement.setdefault(depth, set()).add(attribute);
                     
-            if parents:
-                if len(elem.getchildren()) > 0:
+            if parents: # if is parent
+                if len(elem.getchildren()) > 0 or len(elem.attrib.keys()):
                     depthToElement.setdefault(depth, set()).add(elem.tag);
                     #set.add(elem.tag);
                     #if (attributes): set = set.union(elem.attrib.keys()); ~MDC Attributes always children?
@@ -191,7 +191,7 @@ class Utilities(object):
             if ( recurse ): 
                 # Record depth allowing us to order ehrClasses by tree position, so we look at most nested first.
                 Utilities.getXMLElements(elem, depthToElement, children, parents, recurse, attributes, depth+1);
-            
+        
         return depthToElement
     
     @staticmethod 
