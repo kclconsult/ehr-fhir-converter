@@ -1,12 +1,10 @@
-import socket, sys, time, xml.dom.minidom, uuid, json, inspect
+import socket, sys, time, xml.dom.minidom, uuid, json, inspect, collections
 
 from xml.sax.saxutils import escape
 from nltk.corpus import wordnet
 
 from EHR.APIConstants import APIConstants
 from EHR.APIVariables import APIVariables
-
-import unittest
 
 import models_full.activitydefinition;
 import models_full.address;
@@ -23,11 +21,22 @@ import models_full.sequence;
 import models_subset.practitioner;
 import models_subset.patient;
 import models_subset.coding;
+import models_subset.encounter;
 
 class Utilities(object):
     
     MODELS_PATH = "models_subset";
     
+    @staticmethod
+    def mergeDicts(dicts):
+        
+        superDict = collections.defaultdict(set)
+        for d in dicts:
+            for k, v in d.iteritems():  # d.items() in Python 3+
+                superDict[k].update(v)
+        
+        return superDict;
+
     # Find different grammatical forms of words in camelcase string.
     @staticmethod
     def differentWordForms(wordsInString):
@@ -63,109 +72,6 @@ class Utilities(object):
             classesToChildren[root].add(attributeContainer[2]);
         else:
             classesToChildren[root].add(attributeName);
-                     
-    # NB. FHIR is not hierarchical.
-    @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
-        
-        # Convert string to class, if not class.
-        if ( not inspect.isclass(root) ): root = eval(root);
-        
-        # Ignore test classes.
-        if ( unittest.TestCase in inspect.getmro(root) or Exception in inspect.getmro(root) ): return;
-        
-        # Don't examine classes that don't use the 'elementsProperties' approach to list attributes.
-        if ( not callable(getattr(root, "elementProperties", None)) ): return;
-        
-        if ( root not in classesToChildren.keys() ): classesToChildren[root] = set();
-        
-        # Attributes of this class and parents.
-        attributes = root.elementProperties(root());
-        
-        # List of parents (first element in tuple is this class).
-        parents = inspect.getmro(root)[1:]
-        
-        for parent in parents: 
-            if ( not callable(getattr(parent, "elementProperties", None)) ): continue;
-            attributes = [item for item in attributes if item not in parent.elementProperties(parent())]
-        
-        # If the type of an attribute is simply 'FHIRReference' we aim to resolve the scope of this reference by adding duplicate the attribute for each potential reference type.
-        if resolveFHIRReferences:
-            
-            #print "---> " + str(root);
-            
-            newAttributes = [];
-            
-            for attributeContainer in attributes:
-                
-                if ( "FHIRReference" in attributeContainer[2].__name__ ): 
-                    
-                    #print attributeContainer[0];
-                    
-                    sourceLines = inspect.getsource(root).split("\n");
-                    
-                    for sourceLine in sourceLines:
-                        
-                        if ( "self." + attributeContainer[0] in sourceLine ):
-                            
-                            #print sourceLine;
-                            
-                            # If the list of possible references happens not to be two lines later, try three lines later.
-                            if "FHIRReference" not in sourceLines[sourceLines.index(sourceLine) + 2]:
-                                index = sourceLines.index(sourceLine) + 3;
-                            else:
-                                index = sourceLines.index(sourceLine) + 2;
-                            
-                            for possibleFHIRReference in inspect.getsource(root).split("\n")[index].split("`")[3].split(","):
-                                
-                                if possibleFHIRReference.strip() in [item.__name__ for item in otherFHIRClasses]:
-                                    
-                                    attributeContainerAsList = list(attributeContainer);
-                                    attributeContainerAsList.insert(2, otherFHIRClasses[[item.__name__ for item in otherFHIRClasses].index(possibleFHIRReference.strip())]);
-                                    attributeContainer = tuple(attributeContainerAsList);
-                                    newAttributes.append(attributeContainer);
-                                    
-                else:
-                    newAttributes.append(attributeContainer);
-        
-            attributes = newAttributes;
-    
-        # For all attributes of this class (minus attributes of parent, which are typically generic).
-        for attributeContainer in attributes:
-            
-            attribute = getattr(attributeContainer[2], "elementProperties", None)
-            attributeName = attributeContainer[0];
-            
-            #print str(attributeContainer);
-            
-            if addParentName: attributeName = attributeName + str(root.__name__); # ! Change this to add it as an extra child.
-                
-            if children:
-                if not callable(attribute):
-                    Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
-                    
-            if parents:
-                if callable(attribute):
-                    Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
-                    
-            else:
-                Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
-                
-            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
-            # Extensions classes appear in every class so don't show anything unique.
-            # Don't follow links to types that are of the root class itself.
-            # and attributeContainer[0] not in set([j for i in classesToChildren.values() for j in i])
-            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[2] != root and attributeContainer[0] not in visited:
-                
-                visited.append(attributeContainer[0]);
-                Utilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, visited);
-                
-                    
-        if recurse:     
-            return classesToChildren;
-        
-        else:
-            return classesToChildren[root];
             
     @staticmethod
     def getXMLElements(root, depthToElement={}, children=True, parents=True, recurse=True, attributes=False, depth=0):
