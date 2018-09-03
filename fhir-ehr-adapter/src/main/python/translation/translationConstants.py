@@ -11,7 +11,7 @@ class TranslationConstants(object):
     
     SEMANTIC_SIMILARITY_THRESHOLD = 0.95;
     
-    MORPHOLOGICAL_SIMILARITY_THRESHOLD = 0.75;
+    MORPHOLOGICAL_SIMILARITY_THRESHOLD = 0.95;
   
     # Might want to be more generous with child matches.
     OVERALL_CHILD_SIMILARITY_THRESHOLD = 0.95;

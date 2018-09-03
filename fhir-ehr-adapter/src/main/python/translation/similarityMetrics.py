@@ -36,9 +36,12 @@ class SimilarityMetrics(object):
         
         return fuzz.ratio(ehrAttribute.lower(), fhirAttribute.lower()) / 100.0;
     
+    wordsToTypes = {};
+    synsetToDefinitionTerms = {};
+    
     # Similarity Metric B
     @staticmethod
-    def semanticSimilarity(ehrAttribute, fhirAttribute, useDefinition=False, alsoUseMorphologicalSimilarity=False):
+    def semanticSimilarity(ehrAttribute, fhirAttribute, useDefinition=True, alsoUseMorphologicalSimilarity=True):
         
         # If these attributes would be associated via a text match instead, then don't also reevaluate their similarity via the text similarity below.
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;
@@ -53,31 +56,44 @@ class SimilarityMetrics(object):
             if useDefinition:
                 
                 setType = set.pos();
+                associatedSynonyms = [];
                 
-                # We also include words from the definition of this word, that are of the same grammatical type (e.g. noun or verb), as potential synonyms.
-                for word in set.definition().split(" "):
+                if ( set not in SimilarityMetrics.synsetToDefinitionTerms ):
                     
-                    wordSynset = wordnet.synsets(word);
-                    
-                    if not len(wordSynset): continue;
-                    
-                    # Find most popular form, so can find right grammatical form.
-                    chosenSynset = wordSynset[0];
-                    highestLemmaPopularity = 0;
-                    
-                    for set in wordSynset:
-                    
-                        for lemma in set.lemmas():
-                            
-                            #print str(lemma) + " " + str(lemma.count());
-                            if lemma.count() > highestLemmaPopularity: 
-                                highestLemmaPopularity = lemma.count();
-                                chosenSynset = set;
-                    
-                    if ( chosenSynset.pos() == setType ):
+                    # We also include words from the definition of this word, that are of the same grammatical type (e.g. noun or verb), as potential synonyms.
+                    for word in set.definition().split(" "):
                         
-                        synonyms.append(word);
-            
+                        if ( len(word) <= 3 or word in associatedSynonyms or "." in word ): continue;
+                        
+                        if ( word not in SimilarityMetrics.wordsToTypes ):
+                            
+                            wordSynset = wordnet.synsets(word);
+                            
+                            if not len(wordSynset): continue;
+                            
+                            # Find most popular interpretation of this word, so can find right grammatical form.
+                            chosenSynset = wordSynset[0];
+                            highestLemmaPopularity = 0;
+                            
+                            for set in wordSynset:
+                            
+                                for lemma in set.lemmas():
+                                    
+                                    #print str(lemma) + " " + str(lemma.count());
+                                    if lemma.count() > highestLemmaPopularity: 
+                                        highestLemmaPopularity = lemma.count();
+                                        chosenSynset = set;
+                            
+                            SimilarityMetrics.wordsToTypes[word] = chosenSynset.pos();
+                            
+                        if ( SimilarityMetrics.wordsToTypes[word] == setType ):
+                            
+                            associatedSynonyms.append(word);
+                    
+                    SimilarityMetrics.synsetToDefinitionTerms[set] = associatedSynonyms;
+                
+                synonyms = synonyms + SimilarityMetrics.synsetToDefinitionTerms[set];
+                
             for synonym in synonyms:
                 
                 textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, False);

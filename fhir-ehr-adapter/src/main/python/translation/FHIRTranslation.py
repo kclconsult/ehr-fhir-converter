@@ -348,7 +348,8 @@ class FHIRTranslation(object):
         
     @staticmethod
     def printMatches(ehrFHIRMatches, ehrClassesToChildren, fhirClassesToChildren):
-                                      
+              
+        # Handle two EHR classes matching to the same FHIR class. OK if they don't have overlapping fields.                        
         for ehrClass in ehrFHIRMatches:
             
             print "===========================";
