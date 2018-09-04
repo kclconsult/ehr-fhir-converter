@@ -41,7 +41,7 @@ class SimilarityMetrics(object):
     
     # Similarity Metric B
     @staticmethod
-    def semanticSimilarity(ehrAttribute, fhirAttribute, useDefinition=True, alsoUseMorphologicalSimilarity=True):
+    def semanticSimilarity(ehrAttribute, fhirAttribute, useDefinition=False, alsoUseMorphologicalSimilarity=False):
         
         # If these attributes would be associated via a text match instead, then don't also reevaluate their similarity via the text similarity below.
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;

@@ -22,6 +22,7 @@ import models_subset.practitioner;
 import models_subset.patient;
 import models_subset.coding;
 import models_subset.encounter;
+import models_subset.codeableconcept;
 
 class Utilities(object):
     
@@ -64,14 +65,6 @@ class Utilities(object):
                 lemmas.add(related_lemma.name());
         
         return lemmas;
-    
-    @staticmethod
-    def processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName):
-        
-        if attributeTypeOverAttributeName:
-            classesToChildren[root].add(attributeContainer[2]);
-        else:
-            classesToChildren[root].add(attributeName);
             
     @staticmethod
     def getXMLElements(root, depthToElement={}, children=True, parents=True, recurse=True, attributes=False, depth=0):

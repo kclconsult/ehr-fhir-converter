@@ -3,12 +3,12 @@ import pkgutil, importlib, pyclbr, inspect
 from utils.utilities import Utilities;
 from translation.translationConstants import TranslationConstants;
 
-import unittest
+import unittest, models_subset
 
 class TranslationUtilities(object):
     
     @staticmethod
-    def getFHIRClasses():
+    def getFHIRClasses(backboneElements=False):
         
         fhirClasses = [];
         
@@ -19,10 +19,18 @@ class TranslationUtilities(object):
             
             for fhirClass in pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys():
                 
+                if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
+                
                 # Import this module as we'll need it later to examine content of FHIR Class
                 importedModule = importlib.import_module(TranslationConstants.MODELS_PATH + "." + fhirModule);
+                
                 # Turn the fhirClass string into a fhirClass reference.
-                fhirClasses.append(getattr(importedModule, fhirClass));
+                fhirClass = getattr(importedModule, fhirClass);
+                
+                # We don't want supporting classes, just main 
+                if "BackboneElement" in [base.__name__ for base in fhirClass.__bases__]: continue
+                
+                fhirClasses.append(fhirClass);
                 
         return fhirClasses;
     
@@ -35,7 +43,7 @@ class TranslationUtilities(object):
             
             if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
             
-            for connectingClass in [t for t in (TranslationUtilities.getFHIRElements(fhirClass, {}, False, True, False, [], False, True, True, fhirClasses) or [])]:
+            for connectingClass in [t for t in (TranslationUtilities.getFHIRElements(fhirClass, {}, False, True, False, [], [], False, True, True, fhirClasses) or [])]:
                 
                 if connectingClass.__name__ in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
                 
@@ -44,10 +52,18 @@ class TranslationUtilities(object):
                 connections.setdefault(connectingClass,set()).add((fhirClass, "In"));
         
         return connections;
+    
+    @staticmethod
+    def processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName):
         
+        if attributeTypeOverAttributeName:
+            classesToChildren[root].add(attributeContainer[2]);
+        else:
+            classesToChildren[root].add(attributeName);
+            
     # NB. FHIR is not hierarchical.
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
         
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -67,10 +83,12 @@ class TranslationUtilities(object):
         parents = inspect.getmro(root)[1:]
         
         for parent in parents: 
+            
             if ( not callable(getattr(parent, "elementProperties", None)) ): continue;
+            
             attributes = [item for item in attributes if item not in parent.elementProperties(parent())]
         
-        # If the type of an attribute is simply 'FHIRReference' we aim to resolve the scope of this reference by adding duplicate the attribute for each potential reference type.
+        # If the type of an attribute is simply 'FHIRReference' we aim to resolve the scope of this reference by adding duplicate attributes for each potential reference type.
         if resolveFHIRReferences:
             
             #print "---> " + str(root);
@@ -123,25 +141,24 @@ class TranslationUtilities(object):
                 
             if children:
                 if not callable(attribute):
-                    Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
+                    TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
                     
             if parents:
                 if callable(attribute):
-                    Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
+                    TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
                     
             else:
-                Utilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
-                
+                TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
+            
             # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
             # Don't follow links to types that are of the root class itself.
             # and attributeContainer[0] not in set([j for i in classesToChildren.values() for j in i])
-            if recurse and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[2] != root and attributeContainer[0] not in visited:
+            if ( ( recurse and len(selectiveRecurse) == 0 ) or ( recurse and str(root.__name__) in selectiveRecurse ) or ( recurse and str(attributeContainer[2].__name__) in selectiveRecurse ) ) and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[2] != root and attributeContainer[0] not in visited:
                 
                 visited.append(attributeContainer[0]);
-                Utilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, visited);
-                
-                    
+                TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited);
+                          
         if recurse:     
             return classesToChildren;
         
@@ -149,10 +166,10 @@ class TranslationUtilities(object):
             return classesToChildren[root];
     
     @staticmethod
-    def getFHIRClassChildren(fhirClass, linkedClasses):
+    def getFHIRClassChildren(fhirClass, linkedClasses, selectiveRecurse=[]):
         
-        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, linkedClasses);
-
+        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, linkedClasses, selectiveRecurse, []);
+        
         if linkedClasses and fhirElements != None:
             
             fhirChildAndParent = [];

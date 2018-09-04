@@ -32,7 +32,8 @@ if __name__ == "__main__":
         #print FHIRTranslation.textSimilarity("medicine", "medication", True);
         #print Matches.match("drug", "medication", TranslationConstants.TEXT_SIMILARITY_WEIGHTING,  TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,  TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
         #print FHIRTranslation.matches("scheme", "system", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD);
-        #print ft.childSimilarity("Event", "models_subset.encounter.Encounter", None, None, ft.getPatient("4917111072"));
+        #print ft.childSimilarity("ClinicalCode", "models_subset.coding.Coding", None, None, ft.getPatient("4917111072"));
+        #print ft.childSimilarity("ClinicalCode", "models_subset.codeableconcept.CodeableConcept", None, None, ft.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Demographics", "models_full.patient.Patient", None, None, FHIRTranslation.getPatient("4917111072"));
