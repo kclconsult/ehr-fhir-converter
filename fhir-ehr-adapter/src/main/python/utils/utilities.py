@@ -6,24 +6,6 @@ from nltk.corpus import wordnet
 from EHR.APIConstants import APIConstants
 from EHR.APIVariables import APIVariables
 
-import models_full.activitydefinition;
-import models_full.address;
-#import models.codesystem;
-import models_full.devicemetric;
-import models_full.claimresponse;
-import models_full.medication;
-import models_full.medicationdispense;
-import models_full.medicationadministration;
-import models_full.medicationrequest;
-import models_full.patient;
-import models_full.sequence;
-
-import models_subset.practitioner;
-import models_subset.patient;
-import models_subset.coding;
-import models_subset.encounter;
-import models_subset.codeableconcept;
-
 class Utilities(object):
     
     MODELS_PATH = "models_subset";

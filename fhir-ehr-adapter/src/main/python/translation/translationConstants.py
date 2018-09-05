@@ -30,3 +30,5 @@ class TranslationConstants(object):
     
     EXCLUDED_FHIR_CLASSES = { "Extension", "FHIRReference" };
     
+    SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
+    

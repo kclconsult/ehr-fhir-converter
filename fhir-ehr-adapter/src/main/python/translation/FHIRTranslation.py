@@ -17,7 +17,7 @@ class FHIRTranslation(object):
         return True;
        
     @staticmethod
-    def childSimilarity(ehrClass, fhirClass, ehrClassesToChildren=None, fhirClassesToChildren=None, xml=None, linkedClasses=False):
+    def childSimilarity(ehrClass, fhirClass, ehrClassesToChildren=None, fhirClassesToChildren=None, xml=None, linkedClasses=False, selectiveRecurse=TranslationConstants.SELECTIVE_RECURSE):
         
         if ( ehrClassesToChildren ):
             ehrClassChildren = ehrClassesToChildren[ehrClass];
@@ -27,7 +27,7 @@ class FHIRTranslation(object):
         if ( fhirClassesToChildren ):
             fhirClassChildren = fhirClassesToChildren[fhirClass];  
         else:
-            fhirClassChildren = TranslationUtilities.getFHIRClassChildren(fhirClass, linkedClasses);
+            fhirClassChildren = TranslationUtilities.getFHIRClassChildren(fhirClass, linkedClasses, selectiveRecurse);
         
         if ( fhirClassChildren == None ): return 0;
         
@@ -54,11 +54,11 @@ class FHIRTranslation(object):
                 if Matches.matches(ehrClassChild, fhirClassChildForMatch, TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD) and FHIRTranslation.dataTypeCompatible("", ""):
                     
                     # To identify raw match strength, we want to look at the combined results of all the metrics without any thresholds.  
-                    matchStrength = Matches.match(ehrClassChild, fhirClassChildForMatch, TranslationConstants.TEXT_SIMILARITY_WEIGHTING,  TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,  TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
+                    matchStrength = Matches.match(ehrClassChild, fhirClassChildForMatch, SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING, SimilarityMetrics.semanticSimilarity, [], TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING, SimilarityMetrics.morphologicalSimilarity, [], TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
                     
                     #matchStrength = FHIRTranslation.match(ehrClassChild, fhirClassChild[0], TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, False);
                     
-                    #print ehrClassChild + " " + fhirClassChild + " " + str(matchStrength);
+                    #print str(ehrClassChild) + " " + str(fhirClassChild) + " " + str(matchStrength);
                     
                     # If the EHR child and FHIR child are linked by the name of the EHR parent, this should affect the match strength. E.g. Medication (EHR parent) in MedicationType (EHR Child) and medicationReference (FHIR child) 
                     if ehrClass.lower() in ehrClassChild.lower() and ehrClass.lower() in fhirClassChild[0].lower():
@@ -109,7 +109,7 @@ class FHIRTranslation(object):
         
             averageMatchStrength = totalMatchStrength / float(totalChildMatches);
            
-            # print str(totalChildMatches) + " " + str(totalChildMatches / float(len(ehrClassChildren))) + " " + str(averageMatchStrength) + " " + str(len(fhirClassChildren)) + " " + str(min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1));
+            #print str(totalChildMatches) + " " + str(totalChildMatches / float(len(ehrClassChildren))) + " " + str(averageMatchStrength) + " " + str(len(fhirClassChildren)) + " " + str(min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1)) + " " + str((totalChildMatches / float(len(ehrClassChildren))) * averageMatchStrength);
             # How many matches have been found for the EHR elements in the candidate FHIR class (weighted by match strength, and by the specificity of the class).       
             return ((totalChildMatches / float(len(ehrClassChildren))) * averageMatchStrength) # * min(len(ehrClassChildren) / float(len(fhirClassChildren)), 1);   
         
@@ -159,7 +159,21 @@ class FHIRTranslation(object):
         else:
             ehrClasses = TranslationUtilities.getEHRClasses(patientXML);
         
-        if (len(ehrClasses)): FHIRTranslation.translatePatientInit(ehrClasses, patientXML, True, [ "CodeableConcept", "Coding" ]);
+        if (len(ehrClasses)): FHIRTranslation.translatePatientInit(ehrClasses, patientXML, True, TranslationConstants.SELECTIVE_RECURSE);
+    
+    @staticmethod
+    def getFHIRClassesToChildren(fhirClasses=TranslationUtilities.getFHIRClasses(), fhirClassesRecurse=True, selectiveRecurse=TranslationConstants.SELECTIVE_RECURSE):
+        
+        fhirClassesToChildren = {};
+        
+        for fhirClass in fhirClasses:
+            
+            children = TranslationUtilities.getFHIRClassChildren(fhirClass, fhirClassesRecurse, selectiveRecurse);
+            
+            if ( children != None ):
+                fhirClassesToChildren[fhirClass] = children;
+        
+        return fhirClassesToChildren;
     
     @staticmethod
     def translatePatientInit(ehrClasses, patientXML, fhirClassesRecurse, selectiveRecurse):
@@ -185,14 +199,7 @@ class FHIRTranslation(object):
             if len(parents):
                 ehrClassesToParents[ehrClass] = parents;
         
-        fhirClassesToChildren = {};
-        
-        for fhirClass in fhirClasses:
-            
-            children = TranslationUtilities.getFHIRClassChildren(fhirClass, fhirClassesRecurse, selectiveRecurse);
-            
-            if ( children != None ):
-                fhirClassesToChildren[fhirClass] = children;
+        fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(fhirClasses, selectiveRecurse);
         
         # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
         ehrClasses = set(ehrClassesToChildren.keys());
@@ -215,7 +222,7 @@ class FHIRTranslation(object):
             
             for fhirClass in fhirClasses:
                 
-                if SimilarityMetrics.compositeStringSimilarity(ehrClass, str(fhirClass.__name__), SimilarityMetrics.textSimilarity, True) == 1.0:
+                if SimilarityMetrics.compositeStringSimilarity(ehrClass, str(fhirClass.__name__), SimilarityMetrics.textSimilarity, [], True) == 1.0:
                     matches += 1;
                     fhirMatch = fhirClass;
             
@@ -269,7 +276,7 @@ class FHIRTranslation(object):
                         ehrFHIRMatches[ehrClass].append(childMatch);
                     else:
                         break;
-                    
+                   
         FHIRTranslation.matchStageThree(ehrClasses, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches);
     
     # Match Stage 3: Fuzzy parent matches
@@ -285,7 +292,7 @@ class FHIRTranslation(object):
             # For each matching FHIR class to this EHR class
             for fhirClassChildSimilarity in ehrFHIRMatches[ehrClass]:
                 
-                similarity = Matches.match(ehrClass, fhirClassChildSimilarity[0].__name__);
+                similarity = Matches.fuzzyMatch(ehrClass, fhirClassChildSimilarity[0].__name__);
                 asList = list(fhirClassChildSimilarity)
                 # Add the parent similarity to the child similarity to get an overall similarity value.
                 asList[1] = asList[1] + similarity;
@@ -367,7 +374,7 @@ class FHIRTranslation(object):
                     for fhirChild in children:
                    
                         # Each child is a tuple with parent as second value.
-                        matchStrength = Matches.match(ehrChild, fhirChild[0], TranslationConstants.TEXT_SIMILARITY_WEIGHTING,  TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,  TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True)
+                        matchStrength = Matches.match(ehrChild, fhirChild[0], SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING, SimilarityMetrics.semanticSimilarity, [], TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING, SimilarityMetrics.morphologicalSimilarity, [], TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True)
                         
                         if ( ehrChild not in ehrChildToHighestFHIRchild or matchStrength > ehrChildToHighestFHIRchild[ehrChild][0] ): 
                             ehrChildToHighestFHIRchild[ehrChild] = (matchStrength, fhirChild);

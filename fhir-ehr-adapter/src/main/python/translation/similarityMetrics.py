@@ -10,7 +10,7 @@ class SimilarityMetrics(object):
     @staticmethod
     def textMatch(ehr, fhir, highestCompositeResult=True, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
     
-        if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.textSimilarity, highestCompositeResult) * TranslationConstants.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
+        if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.textSimilarity, [], highestCompositeResult) * TranslationConstants.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
             return True;
         
         else:
@@ -19,7 +19,7 @@ class SimilarityMetrics(object):
     @staticmethod
     def morphologicalMatch(ehr, fhir, highestCompositeResult=True, morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
     
-        if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.morphologicalSimilarity, highestCompositeResult) * TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING >= morphologicalSimilarityThreshold):
+        if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.morphologicalSimilarity, [], highestCompositeResult) * TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING >= morphologicalSimilarityThreshold):
             return True;
         
         else:
@@ -41,7 +41,7 @@ class SimilarityMetrics(object):
     
     # Similarity Metric B
     @staticmethod
-    def semanticSimilarity(ehrAttribute, fhirAttribute, useDefinition=False, alsoUseMorphologicalSimilarity=False):
+    def semanticSimilarity(ehrAttribute, fhirAttribute, synonymSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD, useDefinition=False, alsoUseMorphologicalSimilarity=False, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
         
         # If these attributes would be associated via a text match instead, then don't also reevaluate their similarity via the text similarity below.
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;
@@ -93,14 +93,14 @@ class SimilarityMetrics(object):
                     SimilarityMetrics.synsetToDefinitionTerms[set] = associatedSynonyms;
                 
                 synonyms = synonyms + SimilarityMetrics.synsetToDefinitionTerms[set];
-                
+            
             for synonym in synonyms:
                 
-                textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, False);
+                textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, [synonymSimilarityThreshold], False);
                 
                 # Synonyms may also be grammatical variants as opposed to just text matches.
                 if ( alsoUseMorphologicalSimilarity ):
-                    morphologicalSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.morphologicalSimilarity, False);
+                    morphologicalSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.morphologicalSimilarity, [morphologicalSimilarityThreshold], False);
                 
                 else:
                     morphologicalSimilarity = 0;
@@ -108,7 +108,7 @@ class SimilarityMetrics(object):
                 # Get similarity between synonym for ehrAttribute and fhirAttribute (not synonyms that are the ehr attribute itself). If this is over a given threshold, AND it is greater than previously marked highest values, update highest similarity.
                 if not SimilarityMetrics.textSimilarity(synonym, ehrAttribute) == 1.0 and max(textSimilarity, morphologicalSimilarity) > highestSimilarity:
                     
-                    textMatch = SimilarityMetrics.textMatch(Utilities.separationToCapital(synonym), fhirAttribute);
+                    textMatch = SimilarityMetrics.textMatch(Utilities.separationToCapital(synonym), fhirAttribute, True, );
                     
                     if ( alsoUseMorphologicalSimilarity ):
                         morphologicalMatch = SimilarityMetrics.morphologicalMatch(Utilities.separationToCapital(synonym), fhirAttribute);
@@ -127,7 +127,7 @@ class SimilarityMetrics(object):
     
      # Similarity Metric C
     @staticmethod
-    def morphologicalSimilarity(ehrAttribute, fhirAttribute):
+    def morphologicalSimilarity(ehrAttribute, fhirAttribute, lemmaSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
         
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute): return 0;
         
@@ -135,7 +135,7 @@ class SimilarityMetrics(object):
         
         for lemma in Utilities.lemmas(ehrAttribute):
             
-            if SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True) > highestSimilarity and SimilarityMetrics.textMatch(lemma, fhirAttribute, True, TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
+            if SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True) > highestSimilarity and SimilarityMetrics.textMatch(lemma, fhirAttribute, True, lemmaSimilarityThreshold):
                 highestSimilarity = SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True);
         
         return highestSimilarity;
@@ -146,7 +146,7 @@ class SimilarityMetrics(object):
            
     # With highest result False, there needs to be a stricter connection between the class or fields. Probably best for child fields to have stricter match rules.
     @staticmethod
-    def compositeStringSimilarity(ehrClassField, fhirClassField, comparisonMethod, highestResult=True):
+    def compositeStringSimilarity(ehrClassField, fhirClassField, comparisonMethod, comparisonMethodArgs=[], highestResult=True):
         
         # If ehrClass string is composite, compare each word with the FHIR target using all of the metrics, and 
         # then use chosen combination method to produce a value.
@@ -163,7 +163,7 @@ class SimilarityMetrics(object):
             
             for fhirWord in fhirWords:
                 
-                similarity = comparisonMethod(ehrWord, fhirWord);
+                similarity = comparisonMethod(ehrWord, fhirWord, *comparisonMethodArgs);
                 
                 if( similarity > highestSimilarity ): highestSimilarity = similarity;
                     
