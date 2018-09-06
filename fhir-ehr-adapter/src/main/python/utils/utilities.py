@@ -11,6 +11,14 @@ class Utilities(object):
     MODELS_PATH = "models_subset";
     
     @staticmethod
+    def isNumber(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+    
+    @staticmethod
     def mergeDicts(dicts):
         
         superDict = collections.defaultdict(set)
@@ -49,29 +57,35 @@ class Utilities(object):
         return lemmas;
             
     @staticmethod
-    def getXMLElements(root, depthToElement={}, children=True, parents=True, recurse=True, attributes=False, depth=0):
+    def getXMLElements(root, depthToElement={}, children=True, parents=True, duplicates=True, recurse=True, attributes=False, depth=0):
         
         for elem in root.getchildren():
             
             if children: # if is child
-                if len(elem.getchildren()) == 0:
-                    depthToElement.setdefault(depth, set()).add(elem.tag);
-                    if (attributes): 
-                        for attribute in elem.attrib.keys():
-                            depthToElement.setdefault(depth, set()).add(attribute);
+                if len(elem.getchildren()) == 0 and len(elem.attrib.keys()) == 0:
+                    depthToElement.setdefault(depth, []).append(elem.tag);
                     
             if parents: # if is parent
                 if len(elem.getchildren()) > 0 or len(elem.attrib.keys()):
-                    depthToElement.setdefault(depth, set()).add(elem.tag);
-                    #set.add(elem.tag);
-                    #if (attributes): set = set.union(elem.attrib.keys()); ~MDC Attributes always children?
+                    depthToElement.setdefault(depth, []).append(elem.tag);
                     
             if not children and not parents:
-                depthToElement.setdefault(depth, set()).add(elem.tag);
+                depthToElement.setdefault(depth, []).append(elem.tag);
             
             if ( recurse ): 
                 # Record depth allowing us to order ehrClasses by tree position, so we look at most nested first.
-                Utilities.getXMLElements(elem, depthToElement, children, parents, recurse, attributes, depth+1);
+                Utilities.getXMLElements(elem, depthToElement, children, parents, duplicates, recurse, attributes, depth+1);
+        
+            
+        if (children and attributes):         
+            
+            for attribute in root.attrib.keys():
+                depthToElement.setdefault(depth, []).append(attribute);
+                            
+        if ( not duplicates ):
+            
+            for depth in depthToElement:
+                depthToElement[depth] = list(set(depthToElement[depth]));
         
         return depthToElement
     

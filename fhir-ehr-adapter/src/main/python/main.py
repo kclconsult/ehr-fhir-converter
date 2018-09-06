@@ -33,7 +33,7 @@ if __name__ == "__main__":
         #print Matches.match("drug", "medication", TranslationConstants.TEXT_SIMILARITY_WEIGHTING,  TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,  TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
         #print FHIRTranslation.matches("scheme", "system", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD);
         #print Matches.fuzzyMatch("Drug", "Medication");
-        #print ft.childSimilarity("Drug", "models_subset.patient.Patient", None, None, ft.getPatient("4917111072"), True);
+        #print ft.childSimilarity("Demographics", "models_subset.patient.Patient", None, None, ft.getPatient("4917111072"), True);
         #print ft.childSimilarity("ClinicalCode", "models_subset.codeableconcept.CodeableConcept", None, None, ft.getPatient("4917111072"));
         #print FHIRTranslation.childSimilarity("Medication", "models_full.medicationrequest.MedicationRequest", None, None, FHIRTranslation.getPatient("4917111072"), True);
         #print FHIRTranslation.childSimilarity("Medication", "models_full.sequence.SequenceStructureVariantInner", None, None, FHIRTranslation.getPatient("4917111072"));

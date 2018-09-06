@@ -26,7 +26,7 @@ import models_subset.codeableconcept;
 class TranslationUtilities(object):
     
     @staticmethod
-    def getFHIRClasses(backboneElements=False):
+    def getFHIRClasses(mergeBackboneElements=True):
         
         fhirClasses = [];
         
@@ -46,6 +46,7 @@ class TranslationUtilities(object):
                 fhirClass = getattr(importedModule, fhirClass);
                 
                 # We don't want supporting classes, just main 
+                # if (mergeBackboneElements):
                 if "BackboneElement" in [base.__name__ for base in fhirClass.__bases__]: continue
                 
                 fhirClasses.append(fhirClass);
@@ -205,25 +206,82 @@ class TranslationUtilities(object):
             return fhirElements;
             
     @staticmethod
-    def getEHRClasses(patientXML, children=True, parents=False):
+    def getEHRClasses(patientXML, children=True, parents=False, duplicates=False):
         
-        # Combines all value in dictionary of EHR depths.
-        return set(set().union(*Utilities.getXMLElements(patientXML.find("Response"), {}, False).values()));
+        if ( duplicates ):
+            
+           ehrClasses = Utilities.getXMLElements(patientXML.find("Response"), {}, False, parents, duplicates);
+           allValues = [];
+           for depth in ehrClasses: allValues += ehrClasses[depth];
+           return allValues;
         
+        else:
+            
+            # Combines all value in dictionary of EHR depths.
+            return set(set().union(*Utilities.getXMLElements(patientXML.find("Response"), {}, False, parents, duplicates).values()));
+    
+       
     @staticmethod
-    def getEHRClassChildren(xml, ehrClass, children=True, parents=False):
+    def getEHRClassChildren(xml, ehrClass, children=True, parents=False, groupEHRChildren=False):
+        
+        ehrClassChildren = {};
+        
+        ehrIDsToChildren = {};
+        id = 0;
         
         # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to find all possible examples of children that can be listed under that class.
-        allEHRClassChildren = []
+        allEHRClassChildren = [];
+        
         for ehrClassExample in xml.findall(".//" + ehrClass):
-            ehrClassExampleChildren = Utilities.getXMLElements(ehrClassExample, {}, children, parents, True, True)
-            if ( children and len(ehrClassExample.attrib.keys()) ):
-                ehrClassExampleChildren.setdefault(0, set()).update(ehrClassExample.attrib.keys());
-            allEHRClassChildren.append(ehrClassExampleChildren);
+            
+            ehrChildren = Utilities.getXMLElements(ehrClassExample, {}, children, parents, False, True, True);
+            
+            # We only want immediate children (level 0). IDs are ignored if groupEHRChild   
+            if ( 0 in ehrChildren.keys() ):
+                
+                if ( id == 0 ):
+                    ehrIDsToChildren[ehrClass] = ehrChildren[0];
+                
+                else:
+                    ehrIDsToChildren[ehrClass + str(id)] = ehrChildren[0];
+            
+            else:
+                continue;
+            
+            id += 1;
+              
+            if groupEHRChildren:
+                
+                ehrClassChildren.setDefault(ehrClass, []).extend(ehrIDsToChildren[ehrClass + str(id)]);
         
-        ehrClassChildren = Utilities.mergeDicts(allEHRClassChildren);
+        # Treats EHR classes with a different set of children as a different EHR class, even if names are the same. Gives a unique name to the EHR class. EHR classes with children that are a subset of other classes are ignored.
+        if ( not groupEHRChildren ):    
+            
+            ehrIDsToRemove = {};
+               
+            for ehrClassID in ehrIDsToChildren:
+                
+                for otherEHRClassID in ehrIDsToChildren:
+                    
+                     # To avoid mutual removal from the list.
+                    if ( otherEHRClassID in ehrIDsToRemove.keys() ): continue;
+                
+                    #print set(ehrIDsToChildren[ehrClassID]).issubset(set(ehrIDsToChildren[otherEHRClassID]));
+                    
+                    if ( ehrClassID != otherEHRClassID and set(ehrIDsToChildren[ehrClassID]).issubset(set(ehrIDsToChildren[otherEHRClassID])) ):
+                        
+                        ehrIDsToRemove[ehrClassID] = ehrIDsToChildren[ehrClassID];
+            
+            # Remove IDs that are subsets post loop.
+            all(map(ehrIDsToChildren.pop, ehrIDsToRemove));
+            
+            # If, after removal, we are only left with one child, remove any IDs from end of key.
+            if ( len(ehrIDsToChildren) == 1 ):
+                key, value = ehrIDsToChildren.popitem()
+                ehrIDsToChildren[ehrClass] = value;
+            
+            ehrClassChildren = ehrIDsToChildren;
         
-        if 0 in ehrClassChildren.keys():
-            return ehrClassChildren[0];
-        else:
-            return {};
+        return ehrClassChildren;
+        
+       
