@@ -1,7 +1,8 @@
-import socket, sys, time, xml.dom.minidom, uuid, json, inspect, collections
+import socket, sys, time, uuid, json, inspect, collections
 
 from xml.sax.saxutils import escape
 from nltk.corpus import wordnet
+from xml.etree.ElementTree import Element
 
 from EHR.APIConstants import APIConstants
 from EHR.APIVariables import APIVariables
@@ -11,22 +12,33 @@ class Utilities(object):
     MODELS_PATH = "models_subset";
     
     @staticmethod
-    def isNumber(s):
+    def removeLastCharIfNumber(string):
+        
+        if ( Utilities.isNumber(string[len(string) - 1]) ):
+            return string[:-1];
+        
+        else:
+            return string;
+    
+    @staticmethod
+    def isNumber(string):
+        
         try:
-            float(s)
+            float(string)
             return True
+        
         except ValueError:
             return False
     
     @staticmethod
-    def mergeDicts(dicts):
+    def mergeDicts(dictionaries):
         
-        superDict = collections.defaultdict(set)
-        for d in dicts:
-            for k, v in d.iteritems():  # d.items() in Python 3+
-                superDict[k].update(v)
+        superDictionary = collections.defaultdict(set)
+        for dictionary in dictionaries:
+            for key, value in dictionary.iteritems():  # d.items() in Python 3+
+                superDictionary[key].update(value)
         
-        return superDict;
+        return superDictionary;
 
     # Find different grammatical forms of words in camelcase string.
     @staticmethod
@@ -59,39 +71,38 @@ class Utilities(object):
     @staticmethod
     def getXMLElements(root, depthToElement={}, children=True, parents=True, duplicates=True, recurse=True, attributes=False, depth=0):
         
+        if (attributes): 
+            for attributeKey in root.attrib.keys():
+                root.append(Element(attributeKey));
+            
         for elem in root.getchildren():
             
-            tag = elem.tag;
-            
             if children: # if is child
-                if len(elem.getchildren()) == 0 and len(elem.attrib.keys()) == 0:
-                    if ( children and parents ): tag = ("child", tag);
-                    depthToElement.setdefault(depth, []).append(tag);
+                if len(elem.getchildren()) == 0 and len(elem.attrib.keys()) == 0: #TODO: Make elements optional
+                    depthToElement.setdefault(depth, []).append(elem);
                     
             if parents: # if is parent
-                if len(elem.getchildren()) > 0 or len(elem.attrib.keys()):
-                    if ( children and parents ): tag = ("parent", tag);
-                    depthToElement.setdefault(depth, []).append(tag);
+                if len(elem.getchildren()) > 0 or len(elem.attrib.keys()): #TODO: Make elements optional
+                    depthToElement.setdefault(depth, []).append(elem);
                     
             if not children and not parents:
-                depthToElement.setdefault(depth, []).append(elem.tag);
+                depthToElement.setdefault(depth, []).append(elem);
             
             if ( recurse ): 
                 # Record depth allowing us to order ehrClasses by tree position, so we look at most nested first.
                 Utilities.getXMLElements(elem, depthToElement, children, parents, duplicates, recurse, attributes, depth+1);
         
-        if (children and attributes):         
-            
-            for attributeKey in root.attrib.keys():
-                attribute = attributeKey;
-                if ( children and parents ): attribute = ("child", attribute);
-                depthToElement.setdefault(depth, []).append(attribute);
-                            
         if ( not duplicates ):
             
             for depth in depthToElement:
-                depthToElement[depth] = list(set(depthToElement[depth]));
-        
+                replacementElements = [];
+                for element in depthToElement[depth]:
+                    #print element;
+                    if element.tag not in [replacementElement.tag for replacementElement in replacementElements]:
+                        replacementElements.append(element);
+                        
+                depthToElement[depth] = replacementElements;
+                
         return depthToElement
     
     @staticmethod 

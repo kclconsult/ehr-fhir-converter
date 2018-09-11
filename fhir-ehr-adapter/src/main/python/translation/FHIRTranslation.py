@@ -1,5 +1,6 @@
-import json, collections, xml.etree.ElementTree, sys
+import json, collections, sys
 from pprint import pprint
+from xml.etree import ElementTree;
 
 from EHR.SystmOne import SystmOne
 from utils.utilities import Utilities
@@ -7,6 +8,7 @@ from translation.translationConstants import TranslationConstants
 from translation.similarityMetrics import SimilarityMetrics
 from translation.translationUtilities import TranslationUtilities
 from translation.matches import Matches;
+
 
 import models_full;
 
@@ -119,7 +121,7 @@ class FHIRTranslation(object):
     @staticmethod
     def getPatient(id):
         # return SystmOne().getPatientRecord(id);
-        return xml.etree.ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml');
+        return TranslationUtilities.ehrClassToExamples(ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml').find("Response"));
 
     @staticmethod
     def translatePatient(action=None, ehrClass=None, ehrClassChild=None, fhirClassChild=None, fhirClass=None):
@@ -200,11 +202,11 @@ class FHIRTranslation(object):
                 ehrClassesToParents = Utilities.mergeDicts([ehrClassesToParents, parents]);
         
         fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(fhirClasses, selectiveRecurse);
-        
+
         # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
         ehrClasses = set(ehrClassesToChildren.keys());
         fhirClasses = fhirClassesToChildren.keys();
-            
+        
         FHIRTranslation.matchStageOne(ehrClasses, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, fhirClassesRecurse);
         
     # Match stage 1: Exact FHIR terms that are contained in the EHR term        
@@ -236,10 +238,6 @@ class FHIRTranslation(object):
     # Match Stage 2: Child matches   
     @staticmethod
     def matchStageTwo(ehrClassesToRemove, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches, fhirClassesRecurse):
-        
-        print str(ehrClassesToChildren) + " " + str(ehrClassesToParents);
-        
-        sys.exit();
         
         for ehrClass in ehrClassesToChildren.keys():
             
@@ -345,7 +343,8 @@ class FHIRTranslation(object):
                                 commonConnections += 1;
                                 print str(outgoingChild) + " is a child of " + str(ehrClass) + ". " + str(outgoingChild) + " has been matched to " + str(ehrFHIRMatches[outgoingChild][0][0]) + " in FHIR, connecting the two. " + str(fhirClass) + " is also connected to " + str(connection) + ", so " + str(ehrClass) + " and " + str(fhirClass.__name__) + " are related.";
                                 
-                                print TranslationUtilities.recreatableConnections(outgoingChild, ehrClassesToParents[ehrClass], ehrFHIRMatches, fhirConnections);
+                                if "Event" in ehrClass:
+                                    print TranslationUtilities.recreatableConnections(outgoingChild, ehrClassesToParents[ehrClass], ehrFHIRMatches, fhirConnections);
                                 
                                 if (ehrClass, fhirClass) in ehrFHIRCommonConnections.keys():
                                     ehrFHIRCommonConnections[(ehrClass, fhirClass)] = ehrFHIRCommonConnections[(ehrClass, fhirClass)] + 1;
