@@ -61,13 +61,17 @@ class Utilities(object):
         
         for elem in root.getchildren():
             
+            tag = elem.tag;
+            
             if children: # if is child
                 if len(elem.getchildren()) == 0 and len(elem.attrib.keys()) == 0:
-                    depthToElement.setdefault(depth, []).append(elem.tag);
+                    if ( children and parents ): tag = ("child", tag);
+                    depthToElement.setdefault(depth, []).append(tag);
                     
             if parents: # if is parent
                 if len(elem.getchildren()) > 0 or len(elem.attrib.keys()):
-                    depthToElement.setdefault(depth, []).append(elem.tag);
+                    if ( children and parents ): tag = ("parent", tag);
+                    depthToElement.setdefault(depth, []).append(tag);
                     
             if not children and not parents:
                 depthToElement.setdefault(depth, []).append(elem.tag);
@@ -76,10 +80,11 @@ class Utilities(object):
                 # Record depth allowing us to order ehrClasses by tree position, so we look at most nested first.
                 Utilities.getXMLElements(elem, depthToElement, children, parents, duplicates, recurse, attributes, depth+1);
         
-            
         if (children and attributes):         
             
-            for attribute in root.attrib.keys():
+            for attributeKey in root.attrib.keys():
+                attribute = attributeKey;
+                if ( children and parents ): attribute = ("child", attribute);
                 depthToElement.setdefault(depth, []).append(attribute);
                             
         if ( not duplicates ):

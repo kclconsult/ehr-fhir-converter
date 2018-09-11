@@ -197,7 +197,7 @@ class FHIRTranslation(object):
             
             parents = TranslationUtilities.getEHRClassChildren(patientXML, ehrClass, False, True);
             if len(parents):
-                ehrClassesToParents = Utilities.mergeDicts([ehrClassesToChildren, parents]);
+                ehrClassesToParents = Utilities.mergeDicts([ehrClassesToParents, parents]);
         
         fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(fhirClasses, selectiveRecurse);
         
@@ -236,6 +236,10 @@ class FHIRTranslation(object):
     # Match Stage 2: Child matches   
     @staticmethod
     def matchStageTwo(ehrClassesToRemove, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches, fhirClassesRecurse):
+        
+        print str(ehrClassesToChildren) + " " + str(ehrClassesToParents);
+        
+        sys.exit();
         
         for ehrClass in ehrClassesToChildren.keys():
             
@@ -318,6 +322,8 @@ class FHIRTranslation(object):
          
         for ehrClass in ehrClassesToParents.keys():
             
+            print "==== " + str(ehrClass);
+            
             for fhirClass in fhirClasses:
                 
                 if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
@@ -339,14 +345,7 @@ class FHIRTranslation(object):
                                 commonConnections += 1;
                                 print str(outgoingChild) + " is a child of " + str(ehrClass) + ". " + str(outgoingChild) + " has been matched to " + str(ehrFHIRMatches[outgoingChild][0][0]) + " in FHIR, connecting the two. " + str(fhirClass) + " is also connected to " + str(connection) + ", so " + str(ehrClass) + " and " + str(fhirClass.__name__) + " are related.";
                                 
-                                # See if other classes that are children of this EHR element, and have resolved FHIR connections, would be linked to from this mutual connection, thus strengthening the connection between the relationship. 
-                                #for outgoingChildSibling in ehrClassesToParents[ehrClass]:
-                                    
-                                    #if outgoingChildSibling in ehrFHIRMatches.keys():
-                                        
-                                        #for additionalConnection in [fhirConnection[0] for fhirConnection in fhirConnections[connection]]:
-                                            
-                                            #if 
+                                print TranslationUtilities.recreatableConnections(outgoingChild, ehrClassesToParents[ehrClass], ehrFHIRMatches, fhirConnections);
                                 
                                 if (ehrClass, fhirClass) in ehrFHIRCommonConnections.keys():
                                     ehrFHIRCommonConnections[(ehrClass, fhirClass)] = ehrFHIRCommonConnections[(ehrClass, fhirClass)] + 1;
@@ -354,6 +353,9 @@ class FHIRTranslation(object):
                                 else:
                                     ehrFHIRCommonConnections[(ehrClass, fhirClass)] = 1;
                                     
+            print "====";
+            
+        sys.exit();                           
         FHIRTranslation.matchStageFive(ehrFHIRMatches, ehrClassesToChildren, fhirClassesToChildren);                           
     
     # Match Stage 5: Match EHR children to FHIR children from chosen class (and print results).

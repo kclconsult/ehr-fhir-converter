@@ -1,4 +1,4 @@
-import pkgutil, importlib, pyclbr, inspect
+import pkgutil, importlib, pyclbr, inspect, sys
 
 from utils.utilities import Utilities;
 from translation.translationConstants import TranslationConstants;
@@ -220,7 +220,22 @@ class TranslationUtilities(object):
             # Combines all value in dictionary of EHR depths.
             return set(set().union(*Utilities.getXMLElements(patientXML.find("Response"), {}, False, parents, duplicates).values()));
     
-       
+    @staticmethod
+    def filterChildrenParents(ehrClassChildren, filter):
+        
+        ehrChildrenToRemove = [];
+        
+        for ehrClassChild in ehrClassChildren:
+            
+            childElements = [element[1] for element in ehrClassChildren[ehrClassChild] if element[0] == filter];
+            
+            if ( childElements ): ehrClassChildren[ehrClassChild] = childElements;
+            else: ehrChildrenToRemove.append(ehrClassChild);
+                
+        all(map(ehrClassChildren.pop, ehrChildrenToRemove));
+        
+        return ehrClassChildren;
+    
     @staticmethod
     def getEHRClassChildren(xml, ehrClass, children=True, parents=False, groupEHRChildren=False):
         
@@ -234,7 +249,7 @@ class TranslationUtilities(object):
         
         for ehrClassExample in xml.findall(".//" + ehrClass):
             
-            ehrChildren = Utilities.getXMLElements(ehrClassExample, {}, children, parents, False, True, True);
+            ehrChildren = Utilities.getXMLElements(ehrClassExample, {}, True, True, False, True, True);
             
             # We only want immediate children (level 0). IDs are ignored if groupEHRChild   
             if ( 0 in ehrChildren.keys() ):
@@ -266,8 +281,6 @@ class TranslationUtilities(object):
                      # To avoid mutual removal from the list.
                     if ( otherEHRClassID in ehrIDsToRemove.keys() ): continue;
                 
-                    #print set(ehrIDsToChildren[ehrClassID]).issubset(set(ehrIDsToChildren[otherEHRClassID]));
-                    
                     if ( ehrClassID != otherEHRClassID and set(ehrIDsToChildren[ehrClassID]).issubset(set(ehrIDsToChildren[otherEHRClassID])) ):
                         
                         ehrIDsToRemove[ehrClassID] = ehrIDsToChildren[ehrClassID];
@@ -275,13 +288,51 @@ class TranslationUtilities(object):
             # Remove IDs that are subsets post loop.
             all(map(ehrIDsToChildren.pop, ehrIDsToRemove));
             
-            # If, after removal, we are only left with one child, remove any IDs from end of key.
+            # If, after removal, we are only left with one version of this EHR class, remove any IDs from end of key.
             if ( len(ehrIDsToChildren) == 1 ):
                 key, value = ehrIDsToChildren.popitem()
                 ehrIDsToChildren[ehrClass] = value;
             
             ehrClassChildren = ehrIDsToChildren;
         
-        return ehrClassChildren;
+        ehrIDsToRemove = {};
         
-       
+        if ( children and not parents ):
+            ehrClassChildren = TranslationUtilities.filterChildrenParents(ehrClassChildren, "child");
+        
+        elif ( parents and not children ):
+            ehrClassChildren = TranslationUtilities.filterChildrenParents(ehrClassChildren, "parent");
+                
+        return ehrClassChildren;
+    
+    # See if other classes that are children of this EHR element, and have resolved FHIR connections, would be linked to from this mutual connection, thus strengthening the connection between the relationship.
+    @staticmethod
+    def recreatableConnections(ehrClass, ehrClasses, ehrFHIRMatches, fhirConnections, path=[]):
+        
+        if len(ehrClasses) == 0: return path;
+        
+        print str(ehrClass) + " " + str(ehrClasses) + " " + str(path);
+        
+        # Copy ehrClasses content to new object, as we'll be removing items.
+        ehrClasses = set(list(ehrClasses)[:])
+        ehrClasses.remove(ehrClass);
+        
+        for sibling in ehrClasses:
+            
+            print "Sibling: " + str(sibling);
+            
+            if ( ehrClass == sibling or sibling not in ehrFHIRMatches.keys() ): continue;
+            
+            print "Sibling FHIR version: " + str(ehrFHIRMatches[sibling][0][0]);
+            print "ehrClass FHIR version: " + str(ehrFHIRMatches[ehrClass][0][0]);
+            print "FHIR connections EHR class: " + str(fhirConnections[ehrFHIRMatches[ehrClass][0][0]]);
+            
+            # If the FHIR versions of two EHR siblings connect
+            if ( ehrFHIRMatches[sibling][0][0] in [fhirConnection[0] for fhirConnection in fhirConnections[ehrFHIRMatches[ehrClass][0][0]]]  ):
+                
+                path.append(ehrFHIRMatches[sibling][0]);           
+                recreatableConnections(sibling, ehrClasses, ehrFHIRMatches, fhirConnections, path);
+            
+        return path;    
+        
+         
