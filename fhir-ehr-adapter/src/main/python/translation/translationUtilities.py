@@ -205,85 +205,70 @@ class TranslationUtilities(object):
         else:
             return fhirElements;
     
+    # Aim to treat EHR classes with the same name as different entities, if they have non-intersecting child classes.
     @staticmethod
     def ehrClassToExamples(patientXML):
         
-        ehrParents = set([elem.tag for elem in patientXML.iter() if len(elem.getchildren()) > 0]);
-        
-        # Treats EHR classes with a different set of children as a different EHR class, even if names are the same. Gives a unique name to the EHR class. 
-        for ehrClass in ehrParents:
-            
-            id = 0;
-            
-            for ehrClassExample in patientXML.findall(".//" + ehrClass):
-                
-                if ( len(ehrClassExample.getchildren()) == 0  ): continue;
-                
-                if ( id != 0 ): ehrClassExample.tag = ehrClassExample.tag + str(id);
-                
-                id += 1;
-             
         depths = Utilities.getXMLElements(patientXML, {}, False, True, False, True, True);
-        
-        parentMap = { child:parent for parent in patientXML.iter() for child in parent }
         
         for depth in range(len(depths) -1, 0, -1):
             
-            # EHR classes with children that are a subset of other classes are ignored.
-            ehrClassesToRemove = [];
-        
-            for ehrClassExample in depths[depth]:
+            # Expand EHR classes with children that are a subset of one or more other EHR classes with the same name to include the additional children.
+            for ehrClass in depths[depth]:
                 
-                # To avoid mutual removal from the list (and avoid superfluous loops).
-                if ( ehrClassExample.tag in [element.tag for element in ehrClassesToRemove] ): continue;
+                log = False;
+                if "ClinicalCode" in ehrClass.tag: log = True;
+                allChildren = [];
                 
-                # Remove parents if they no longer have any children (due to a previous deletion iteration).
-                if len(ehrClassExample.getchildren()) == 0: 
+                # Only append afterwards to retain structure throughout processing
+                childrenToAppend = {};
+                
+                for ehrClassExample in patientXML.findall(".//" + ehrClass.tag): 
                     
-                    ehrClassesToRemove.append(ehrClassExample);
-                    continue;
+                    if ( len(ehrClassExample.getchildren()) == 0  ): continue;
+                    allChildren.append( (ehrClassExample, ehrClassExample.getchildren() ) );
+                
+                if ( len(allChildren) == 0  ): continue;
+                
+                allChildren.sort(key=lambda t: len(t[1]), reverse=True)
+                
+                for children in allChildren:
                     
-                for otherEHRClassExample in depths[depth]:
-                    
-                    # To avoid superfluous loops.
-                    if ( otherEHRClassExample.tag in [element.tag for element in ehrClassesToRemove] ): continue;
-                    
-                    if ( ehrClassExample.tag == otherEHRClassExample.tag ): continue;
-                    
-                    if len( otherEHRClassExample.getchildren() ) == 0: 
-                    
-                        ehrClassesToRemove.append(otherEHRClassExample);
-                        continue;
-                    
-                    if ( Utilities.removeLastCharIfNumber(ehrClassExample.tag) == Utilities.removeLastCharIfNumber(otherEHRClassExample.tag) ):
+                    for otherChildren in allChildren:
                         
-                        if ( len(ehrClassExample.getchildren()) == len(otherEHRClassExample.getchildren()) ): 
+                        if ( children[1] == otherChildren[1] or str([element.tag for element in otherChildren[1]]) == str([element.tag for element in children[1]]) ): continue;
+                        
+                        if ( set([element.tag for element in otherChildren[1]]).issubset(set([element.tag for element in children[1]])) ):
                             
-                            # If same number of children, choose element with most siblings.
-                            if ( len(parentMap[ehrClassExample].getchildren()) > len(parentMap[otherEHRClassExample].getchildren()) ):
+                            for child in children[1]:
                                 
-                                ehrClassesToRemove.append(otherEHRClassExample);
-                            
-                            elif ( len(parentMap[ehrClassExample].getchildren()) < len(parentMap[otherEHRClassExample].getchildren()) ):
-                                
-                                ehrClassesToRemove.append(ehrClassExample);
-                                # Because the outer loop class is now being removed.
-                                break;
-                            
-                        elif ( set([elem.tag for elem in otherEHRClassExample.getchildren()]).issubset(set([elem.tag for elem in ehrClassExample.getchildren()])) ):
-
-                            ehrClassesToRemove.append(otherEHRClassExample);
-        
-            # Remove IDs that are subsets post loop.
-            for ehrClass in set(ehrClassesToRemove): parentMap[ehrClass].remove(ehrClass);
-        
-            # If, after removal, we are only left with one version of this EHR class, remove any IDs from end of key.
-            for ehrClassExample in patientXML.iter():
+                                if child.tag not in str([element.tag for element in otherChildren[1]]):
+                                    
+                                    childrenToAppend.setdefault(otherChildren[0], []).append(child);
                 
-                if (  Utilities.isNumber( ehrClassExample.tag[len(ehrClassExample.tag) - 1] ) and len([element.tag for element in patientXML.iter() if element.tag.startswith( ehrClassExample.tag[:-1] ) and Utilities.isNumber( element.tag[len(element.tag) - 1] ) ] ) == 1 ):
+                for parentElement in childrenToAppend.keys():
                     
-                    ehrClassExample.tag = ehrClassExample.tag[:-1];
-        
+                    for newChildElement in childrenToAppend[parentElement]:
+                        
+                        if ( newChildElement.tag not in [element.tag for element in parentElement.getchildren()]):
+                            
+                            parentElement.append(newChildElement);
+                
+                # EHR classes that still have different children after this processing are given different numeric names so they are treated as different entities.
+                childrenToNewTagName = {};
+                
+                for ehrClassExample in patientXML.findall(".//" + ehrClass.tag):
+                    
+                    if ( str(sorted([element.tag for element in ehrClassExample.getchildren()])) not in childrenToNewTagName.keys() ):
+                         
+                        if (len(childrenToNewTagName) > 0): ehrClassExample.tag = ehrClassExample.tag + str(len(childrenToNewTagName));
+                         
+                        childrenToNewTagName[str(sorted([element.tag for element in ehrClassExample.getchildren()]))] = ehrClassExample.tag;
+                                                  
+                    else:
+                        
+                        ehrClassExample.tag = childrenToNewTagName[str(sorted([element.tag for element in ehrClassExample.getchildren()]))];      
+                
         return patientXML;
             
     @staticmethod
@@ -333,8 +318,7 @@ class TranslationUtilities(object):
             
                 if ( not allEHRChildren or groupEHRChildren ):
                 
-                    # TODO: Fix: ehrClassChildren.setDefault(ehrClass, []).extend(ehrClassExampleDepthsToChildren[0]);
-                    ehrClassChildren[ehrClass] = [element.tag for element in ehrClassExampleDepthsToChildren[0]];
+                    ehrClassChildren.setdefault(ehrClass, []).extend([element.tag for element in ehrClassExampleDepthsToChildren[0]]);
                     
                 else:
                     
@@ -343,7 +327,7 @@ class TranslationUtilities(object):
             if ( not allEHRChildren ): break;
             
         if ( groupEHRChildren ): ehrClassChildren = Utilities.mergeDicts([allEHRClassChildren]);
-                
+        
         return ehrClassChildren;
     
     # See if other classes that are children of this EHR element, and have resolved FHIR connections, would be linked to from this mutual connection, thus strengthening the connection between the relationship.
@@ -360,7 +344,7 @@ class TranslationUtilities(object):
         
         for sibling in ehrClasses:
             
-            print "Sibling: " + str(sibling);
+            print "Sibling: " + str(sibling) + " " + str(ehrClass == sibling) + " " + str(sibling not in ehrFHIRMatches.keys());
             
             if ( ehrClass == sibling or sibling not in ehrFHIRMatches.keys() ): continue;
             

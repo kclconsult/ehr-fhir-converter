@@ -202,7 +202,7 @@ class FHIRTranslation(object):
                 ehrClassesToParents = Utilities.mergeDicts([ehrClassesToParents, parents]);
         
         fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(fhirClasses, selectiveRecurse);
-
+        
         # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
         ehrClasses = set(ehrClassesToChildren.keys());
         fhirClasses = fhirClassesToChildren.keys();
@@ -341,9 +341,11 @@ class FHIRTranslation(object):
                             if ehrFHIRMatches[outgoingChild][0][0] == connection:
                                 
                                 commonConnections += 1;
-                                print str(outgoingChild) + " is a child of " + str(ehrClass) + ". " + str(outgoingChild) + " has been matched to " + str(ehrFHIRMatches[outgoingChild][0][0]) + " in FHIR, connecting the two. " + str(fhirClass) + " is also connected to " + str(connection) + ", so " + str(ehrClass) + " and " + str(fhirClass.__name__) + " are related.";
                                 
-                                if "Event" in ehrClass:
+                                if "Event" in ehrClass and "Encounter" in fhirClass.__name__:
+                                    
+                                    print str(outgoingChild) + " is a child of " + str(ehrClass) + ". " + str(outgoingChild) + " has been matched to " + str(ehrFHIRMatches[outgoingChild][0][0]) + " in FHIR, connecting the two. " + str(fhirClass) + " is also connected to " + str(connection) + ", so " + str(ehrClass) + " and " + str(fhirClass.__name__) + " are related.";
+                                
                                     print TranslationUtilities.recreatableConnections(outgoingChild, ehrClassesToParents[ehrClass], ehrFHIRMatches, fhirConnections);
                                 
                                 if (ehrClass, fhirClass) in ehrFHIRCommonConnections.keys():

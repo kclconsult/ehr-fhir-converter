@@ -12,6 +12,13 @@ class Utilities(object):
     MODELS_PATH = "models_subset";
     
     @staticmethod
+    def dictKeyFromValue(dictionary, searchValue):
+        
+        for key, value in dictionary.iteritems(): # items() in Python 3+
+            if value == searchValue:
+                return key;
+    
+    @staticmethod
     def removeLastCharIfNumber(string):
         
         if ( Utilities.isNumber(string[len(string) - 1]) ):
@@ -35,7 +42,7 @@ class Utilities(object):
         
         superDictionary = collections.defaultdict(set)
         for dictionary in dictionaries:
-            for key, value in dictionary.iteritems():  # d.items() in Python 3+
+            for key, value in dictionary.iteritems(): # items() in Python 3+
                 superDictionary[key].update(value)
         
         return superDictionary;

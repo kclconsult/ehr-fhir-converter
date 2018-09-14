@@ -165,7 +165,7 @@ class SimilarityMetrics(object):
                 
                 similarity = comparisonMethod(ehrWord, fhirWord, *comparisonMethodArgs);
                 
-                if( similarity > highestSimilarity ): highestSimilarity = similarity;
+                if ( similarity > highestSimilarity ): highestSimilarity = similarity;
                     
                 if ( similarity > highestSimilarityForEHRWord ): highestSimilarityForEHRWord = similarity;
             
