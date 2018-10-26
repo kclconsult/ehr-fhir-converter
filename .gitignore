@@ -6,6 +6,7 @@ src/main/python/models_full/
 src/main/python/models_subset/
 resources/
 library/
+doc/
 
 # Created by https://www.gitignore.io/api/macos,pydev,python,eclipse
 

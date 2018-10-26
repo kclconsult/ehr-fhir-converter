@@ -25,8 +25,9 @@ import models_subset.codeableconcept;
 
 class TranslationUtilities(object):
     
+    #TODO: Actually merge class with its backbone.
     @staticmethod
-    def getFHIRClasses(mergeBackboneElements=True):
+    def getFHIRClasses(mergeBackboneElements=False):
         
         fhirClasses = [];
         
@@ -34,6 +35,8 @@ class TranslationUtilities(object):
             
             # Don't use test modules as a potential match.
             if "_tests" in fhirModule: continue;
+            
+            connectedClasses = [];
             
             for fhirClass in pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys():
                 
@@ -47,10 +50,15 @@ class TranslationUtilities(object):
                 
                 # We don't want supporting classes, just main 
                 # if (mergeBackboneElements):
-                if "BackboneElement" in [base.__name__ for base in fhirClass.__bases__]: continue
+                if not mergeBackboneElements and "BackboneElement" in [base.__name__ for base in fhirClass.__bases__]: continue
                 
-                fhirClasses.append(fhirClass);
-                
+                if mergeBackboneElements: 
+                    connectedClasses.append(fhirClass);
+                else:
+                    fhirClasses.append(fhirClass);
+                    
+            if mergeBackboneElements and len(connectedClasses): fhirClasses.append(connectedClasses);
+         
         return fhirClasses;
     
     @staticmethod

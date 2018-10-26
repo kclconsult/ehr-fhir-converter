@@ -12,6 +12,9 @@ class Utilities(object):
     MODELS_PATH = "models_subset";
     
     @staticmethod
+    def mergeListOfLists(list): return [item for sublist in list for item in sublist];
+    
+    @staticmethod
     def dictKeyFromValue(dictionary, searchValue):
         
         for key, value in dictionary.iteritems(): # items() in Python 3+
