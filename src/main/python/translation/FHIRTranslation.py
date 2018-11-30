@@ -158,6 +158,7 @@ class FHIRTranslation(object):
             print FHIRTranslation.childSimilarity(ehrClass, fhirClass, None, None, FHIRTranslation.getPatient("4917111072"));
 
         else:
+
             ehrClasses = TranslationUtilities.getEHRClasses(patientXML);
 
         if (len(ehrClasses)): FHIRTranslation.translatePatientInit(ehrClasses, patientXML, True, TranslationConstants.SELECTIVE_RECURSE);
@@ -171,9 +172,7 @@ class FHIRTranslation(object):
 
             for fhirClassAndBackboneElements in fhirClasses:
 
-                # Extract the 'parent' class (e.g. Encounter).
-                fhirClass = sorted(fhirClassAndBackboneElements, cmp=Utilities.classLengthSort)[0];
-                print fhirClass;
+                fhirClass = fhirClassAndBackboneElements[0];
 
                 for fhirClassOrBackboneElement in fhirClassAndBackboneElements:
 
@@ -199,14 +198,12 @@ class FHIRTranslation(object):
         # Get fhirClasses
         fhirClasses = TranslationUtilities.getFHIRClasses();
 
-        # Get fhirClasses grouped with backbone elements
-        fhirClassesAndBackbone = TranslationUtilities.getFHIRClasses(True);
-
-        # Get incoming and outgoing connections to each FHIR class.
+        # Get incoming and outgoing connections to each FHIR class (differs from children).
         fhirConnections = TranslationUtilities.getFHIRConnections(fhirClasses);
 
         # Prepare lists of classes and children.
         ehrClassesToChildren = {};
+
         # Get outgoing connections of each ehrClass.
         ehrClassesToParents = {}
 
@@ -220,21 +217,18 @@ class FHIRTranslation(object):
             if len(parents):
                 ehrClassesToParents = Utilities.mergeDicts([ehrClassesToParents, parents]);
 
-        fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(fhirClassesAndBackbone, True, selectiveRecurse, True, True);
-
-        print fhirClassesToChildren.keys();
-        print fhirClassesToChildren[eval("models_subset.encounter.Encounter")];
-        sys.exit();
+        # Map each FHIR class not only to its own children, but also the children of its backbone elements.
+        fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(TranslationUtilities.getFHIRClasses(True), True, selectiveRecurse, True, True);
 
         # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
         ehrClasses = set(ehrClassesToChildren.keys());
         fhirClasses = fhirClassesToChildren.keys();
 
-        FHIRTranslation.matchStageOne(ehrClasses, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, fhirClassesRecurse);
+        FHIRTranslation.matchStageOne(ehrClasses, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, fhirClassesRecurse);
 
     # Match stage 1: Exact FHIR terms that are contained in the EHR term
     @staticmethod
-    def matchStageOne(ehrClasses, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, fhirClassesRecurse):
+    def matchStageOne(ehrClasses, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, fhirClassesRecurse):
 
         # Match components of patient record from EHR to components from JSON representation
         ehrFHIRMatches = {};
@@ -256,11 +250,11 @@ class FHIRTranslation(object):
                 ehrFHIRMatches[ehrClass] = [(fhirMatch, FHIRTranslation.childSimilarity(ehrClass, fhirMatch, ehrClassesToChildren, fhirClassesToChildren, None, fhirClassesRecurse))];
                 ehrClassesToRemove.add(ehrClass);
 
-        FHIRTranslation.matchStageTwo(ehrClassesToRemove, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, ehrFHIRMatches, fhirClassesRecurse);
+        FHIRTranslation.matchStageTwo(ehrClassesToRemove, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches, fhirClassesRecurse);
 
     # Match Stage 2: Child matches
     @staticmethod
-    def matchStageTwo(ehrClassesToRemove, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, ehrFHIRMatches, fhirClassesRecurse):
+    def matchStageTwo(ehrClassesToRemove, ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches, fhirClassesRecurse):
 
         for ehrClass in ehrClassesToChildren.keys():
 
@@ -272,7 +266,7 @@ class FHIRTranslation(object):
 
             for fhirClass in fhirClasses:
 
-                childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren, None, fhirClassesRecurse);
+                childSimilarity = FHIRTranslation.childSimilarity(ehrClass, fhirClass, ehrClassesToChildren, fhirClassesToChildren, None, True, fhirClassesRecurse);
 
                 childMatches.append((fhirClass, childSimilarity));
 
@@ -302,11 +296,11 @@ class FHIRTranslation(object):
                     else:
                         break;
 
-        FHIRTranslation.matchStageThree(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, ehrFHIRMatches);
+        FHIRTranslation.matchStageThree(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches);
 
     # Match Stage 3: Fuzzy parent matches
     @staticmethod
-    def matchStageThree(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, ehrFHIRMatches):
+    def matchStageThree(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches):
 
         # Now decide between multiples matches based upon names of parent classes.
         for ehrClass in ehrFHIRMatches:
@@ -333,58 +327,42 @@ class FHIRTranslation(object):
         for ehrClass in ehrFHIRMatches:
             ehrFHIRMatches[ehrClass] = sorted(ehrFHIRMatches[ehrClass], key=lambda sortable: (sortable[1]), reverse=True);
 
-        FHIRTranslation.matchStageFour(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, ehrFHIRMatches);
+        FHIRTranslation.matchStageFour(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches);
 
     # Match Stage 4: Replicating connections
     @staticmethod
-    def matchStageFour(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesAndBackbone, fhirClassesToChildren, fhirConnections, ehrFHIRMatches):
+    def matchStageFour(ehrClassesToChildren, ehrClassesToParents, fhirClasses, fhirClassesToChildren, fhirConnections, ehrFHIRMatches):
 
         ehrFHIRCommonConnections = {};
 
         for ehrClass in ehrClassesToParents.keys():
 
-            print "==== " + str(ehrClass);
+            for fhirClass in fhirClasses:
 
-            for fhirClassAndBackboneElements in fhirClassesAndBackbone:
+                if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
 
-                # Extract the 'parent' class (e.g. Encounter).
-                fhirClass = fhirClassAndBackboneElements[0];
+                # Find situations in which an EHR class has a child (which is also a parent) and a FHIR class has a connection, and those two classes (child and connection) have been matched, thus connecting the EHR and FHIR classes. For example Event (EHR parent) links to ClinicalCode (EHR child, with children of its own) and Encounter (FHIR class A) links to Condition (FHIR class B). If ClinicalCode and Condition are matched (which they are), then the classes -- Event and Encounter -- are likely to have some connection (which they do). Assuming all of an EHR (EHRA) class's children have a FHIR representation, this process repeats, and in the best case identifies one FHIR class which connects to each of the FHIR classes that has been chosen as a child-match for EHRAs children (one-to-many).
 
-                for fhirClassOrBackboneElement in fhirClassAndBackboneElements:
+                for ehrChild in ehrClassesToParents[ehrClass]:
 
-                    if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
+                    if ehrChild in ehrFHIRMatches.keys():
 
-                    # Find situations in which an EHR class has a child and a FHIR class has a child, and those two children have been matched, thus connecting the parents. For example Event (EHR parent) links to ClinicalCode (EHR child) and Encounter (FHIR parent) links to Condition (FHIR child). If ClinicalCode and Condition are connected (which they are), then the parents are likely to have some connection (which they do).
-                    commonConnections = 0;
+                        if fhirClass not in fhirConnections.keys() or ehrClass not in ehrFHIRMatches: continue;
 
-                    for outgoingChild in ehrClassesToParents[ehrClass]:
+                        for connection in [fhirConnection[0] for fhirConnection in fhirConnections[fhirClass]]:
 
-                        if outgoingChild in ehrFHIRMatches.keys():
+                            # Should probably consider other EHR-FHIR matches as common connection criteria, if they are as equally strong.
+                            if ehrFHIRMatches[ehrChild][0][0] == connection:
 
-                            if fhirClassOrBackboneElement not in fhirConnections.keys() or ehrClass not in ehrFHIRMatches: continue;
+                                additionalConnections = len(TranslationUtilities.recreatableConnections(ehrChild, ehrClassesToParents[ehrClass], ehrFHIRMatches, fhirConnections))
+                                
+                                # 1 for the first EHR-FHIR match, plus any resulting subsequent common connections.
+                                if (ehrClass, fhirClass) in ehrFHIRCommonConnections.keys():
+                                    ehrFHIRCommonConnections[(ehrClass, fhirClass)] = ehrFHIRCommonConnections[(ehrClass, fhirClass)] + ( 1 + additionalConnections );
 
-                            for connection in [fhirConnection[0] for fhirConnection in fhirConnections[fhirClassOrBackboneElement]]:
+                                else:
+                                    ehrFHIRCommonConnections[(ehrClass, fhirClass)] = ( 1 + additionalConnections );
 
-                                # Should probably consider other matches, if they are as equally strong.
-                                if ehrFHIRMatches[outgoingChild][0][0] == connection:
-
-                                    commonConnections += 1;
-
-                                    if "Event" in ehrClass and "Encounter" in fhirClass.__name__:
-
-                                        print str(outgoingChild) + " is a child of " + str(ehrClass) + ". " + str(outgoingChild) + " has been matched to " + str(ehrFHIRMatches[outgoingChild][0][0]) + " in FHIR, connecting the two. " + str(fhirClass) + " is also connected to " + str(connection) + ", so " + str(ehrClass) + " and " + str(fhirClass) + " are related.";
-
-                                        print TranslationUtilities.recreatableConnections(outgoingChild, ehrClassesToParents[ehrClass], ehrFHIRMatches, fhirConnections);
-
-                                    if (ehrClass, fhirClass) in ehrFHIRCommonConnections.keys():
-                                        ehrFHIRCommonConnections[(ehrClass, fhirClass)] = ehrFHIRCommonConnections[(ehrClass, fhirClass)] + 1;
-
-                                    else:
-                                        ehrFHIRCommonConnections[(ehrClass, fhirClass)] = 1;
-
-            print "====";
-
-        sys.exit();
         FHIRTranslation.matchStageFive(ehrFHIRMatches, ehrClassesToChildren, fhirClassesToChildren);
 
     # Match Stage 5: Match EHR children to FHIR children from chosen class (and print results).

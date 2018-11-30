@@ -98,9 +98,6 @@ class Utilities(object):
                 if len(elem.getchildren()) > 0 or len(elem.attrib.keys()): #TODO: Make elements optional
                     depthToElement.setdefault(depth, []).append(elem);
 
-            if not children and not parents:
-                depthToElement.setdefault(depth, []).append(elem);
-
             if ( recurse ):
                 # Record depth allowing us to order ehrClasses by tree position, so we look at most nested first.
                 Utilities.getXMLElements(elem, depthToElement, children, parents, duplicates, recurse, attributes, depth+1);

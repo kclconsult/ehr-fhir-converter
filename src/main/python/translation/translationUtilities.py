@@ -54,10 +54,13 @@ class TranslationUtilities(object):
 
                 if mergeBackboneElements:
                     connectedClasses.append(fhirClass);
+                    # Sorts the classes in order to always have the base class (non-backbone) first, e.g. Encounter first over something like EncounterLocation.
+                    connectedClasses = sorted(connectedClasses, cmp=Utilities.classLengthSort);
                 else:
                     fhirClasses.append(fhirClass);
 
-            if mergeBackboneElements and len(connectedClasses): fhirClasses.append(connectedClasses);
+            if mergeBackboneElements and len(connectedClasses):
+                fhirClasses.append(connectedClasses);
 
         return fhirClasses;
 
@@ -213,86 +216,95 @@ class TranslationUtilities(object):
         else:
             return fhirElements;
 
-    # Aim to treat EHR classes with the same name as different entities, if they have non-intersecting child classes.
+    # Aim to treat EHR classes with the same name as different entities if they have non-intersecting child classes.
     @staticmethod
     def ehrClassToExamples(patientXML):
 
-        depths = Utilities.getXMLElements(patientXML, {}, False, True, False, True, True);
+        # First get unique examples of EHR classes, to be expanded upon later to find all examples
+        noDuplicateEHRClassesAtDepths = Utilities.getXMLElements(patientXML, {}, False, True, False, True, True);
 
-        for depth in range(len(depths) -1, 0, -1):
+        for depth in range(len(noDuplicateEHRClassesAtDepths) -1, 0, -1):
 
-            # Expand EHR classes with children that are a subset of one or more other EHR classes with the same name to include the additional children.
-            for ehrClass in depths[depth]:
+            # Expand EHR classes with children that are a subset of one or more other EHR classes with the same name to include the additional children held by that other class. This method will additionally ensure EHR classes are subsumed by larger EHR classes created during the expansion process.
+            for ehrClass in noDuplicateEHRClassesAtDepths[depth]:
 
-                log = False;
-                if "ClinicalCode" in ehrClass.tag: log = True;
-                allChildren = [];
+                allParentsAndChildren = [];
 
-                # Only append afterwards to retain structure throughout processing
+                # Only append afterwards to retain structure throughout processing. Will not contain all parents.
                 childrenToAppend = {};
 
-                for ehrClassExample in patientXML.findall(".//" + ehrClass.tag):
+                # Store so we get the same memory IDs later for debugging.
+                ehrClassExamples = patientXML.findall(".//" + ehrClass.tag);
+
+                # Find all examples from original unique list.
+                for ehrClassExample in ehrClassExamples:
 
                     if ( len(ehrClassExample.getchildren()) == 0  ): continue;
-                    allChildren.append( (ehrClassExample, ehrClassExample.getchildren() ) );
+                    allParentsAndChildren.append( (ehrClassExample, ehrClassExample.getchildren() ) );
 
-                if ( len(allChildren) == 0  ): continue;
+                if ( len(allParentsAndChildren) == 0  ): continue;
 
-                allChildren.sort(key=lambda t: len(t[1]), reverse=True)
+                # Sort so that the the parents with the least children are considered first.
+                allParentsAndChildren.sort(key=lambda t: len(t[1]), reverse=True)
 
-                for children in allChildren:
+                for parentAndChildren in allParentsAndChildren:
 
-                    for otherChildren in allChildren:
+                    for parentAndOtherChildren in allParentsAndChildren:
 
-                        if ( children[1] == otherChildren[1] or str([element.tag for element in otherChildren[1]]) == str([element.tag for element in children[1]]) ): continue;
+                        children = parentAndChildren[1];
+                        otherParent = parentAndOtherChildren[0]
+                        otherChildren = parentAndOtherChildren[1];
 
-                        if ( set([element.tag for element in otherChildren[1]]).issubset(set([element.tag for element in children[1]])) ):
+                        # If trying to compare to self as part of nested loop, skip.
+                        if ( children == otherChildren or str([element.tag for element in otherChildren]) == str([element.tag for element in children]) ): continue;
 
-                            for child in children[1]:
+                        # EHRname - set of children; sameEHRname - other set of children. If the childen of sameEHRname are a subset of the children of EHRname, then (plan to) add the children of EHRname that are not in sameEHRname to sameEHRname.
+                        if ( set([element.tag for element in otherChildren]).issubset(set([element.tag for element in children])) ):
 
-                                if child.tag not in str([element.tag for element in otherChildren[1]]):
+                            for child in children:
 
-                                    childrenToAppend.setdefault(otherChildren[0], []).append(child);
+                                if child.tag not in str([element.tag for element in otherChildren]):
 
-                for parentElement in childrenToAppend.keys():
+                                    # Prepare to add later to avoid changing structure during processing.
+                                    childrenToAppend.setdefault(otherParent, []).append(child);
 
-                    for newChildElement in childrenToAppend[parentElement]:
-
-                        if ( newChildElement.tag not in [element.tag for element in parentElement.getchildren()]):
-
-                            parentElement.append(newChildElement);
-
-                # EHR classes that still have different children after this processing are given different numeric names so they are treated as different entities.
+                # EHR classes with the same name that still have different children after this processing are given different numeric suffixes so they are treated as different entities. To do this, this dictionary is introduced to link unique, sorted sets of children to parent names.
                 childrenToNewTagName = {};
 
-                for ehrClassExample in patientXML.findall(".//" + ehrClass.tag):
+                for ehrClassExample in ehrClassExamples:
 
+                    if ( len(ehrClassExample.getchildren()) == 0  ): continue;
+
+                    # If we don't have a record of this instance of an EHR class name (e.g. one instance of a ClinicalCode element, when lots of ClinicalCode elements exist in the document.), then it is either the first example of this EHR class name (+ children) combination that we have extracted, or it is a new EHR class name + children combination, in which case it should be recorded with a new incremented numerical suffix. As such, childrenToNewTagName holds a record of all unique EHRname:children combinations.
                     if ( str(sorted([element.tag for element in ehrClassExample.getchildren()])) not in childrenToNewTagName.keys() ):
 
+                        # Incrementally name.
                         if (len(childrenToNewTagName) > 0): ehrClassExample.tag = ehrClassExample.tag + str(len(childrenToNewTagName));
 
+                        # Record the mapping between this set of EHR children and the new tag name. We order the set (to ensure different permutations are ignored when indexing), and if the EHR happens to have multiple children with the same tag, don't use this as part of the index.
                         childrenToNewTagName[str(sorted([element.tag for element in ehrClassExample.getchildren()]))] = ehrClassExample.tag;
 
                     else:
 
+                        # If we do have a record of this EHR class name + children combination, then it has already been given a numerical suffix (or none, if it was the first instance in the document), so this EHR element example should be given the same numerical suffix, as along with its children it represents the same entity.
                         ehrClassExample.tag = childrenToNewTagName[str(sorted([element.tag for element in ehrClassExample.getchildren()]))];
 
         return patientXML;
 
     @staticmethod
-    def getEHRClasses(patientXML, children=True, parents=False, duplicates=False):
+    def getEHRClasses(patientXML, children=True, parents=True, duplicates=False):
 
         if ( duplicates ):
 
-           ehrClasses = Utilities.getXMLElements(patientXML, {}, False, parents, duplicates);
+           ehrClasses = Utilities.getXMLElements(patientXML, {}, children, parents, duplicates);
            allValues = [];
            for depth in ehrClasses: allValues += ehrClasses[depth];
            return allValues;
 
         else:
 
-            # Combines all value in dictionary of EHR depths.
-            return [element.tag for element in set(set().union(*Utilities.getXMLElements(patientXML, {}, False, parents, duplicates).values()))];
+            # Combines all values in dictionary of EHR depths.
+            return [element.tag for element in set(set().union(*Utilities.getXMLElements(patientXML, {}, children, parents, duplicates).values()))];
 
     @staticmethod
     def filterChildrenParents(ehrClassChildren, filter):
@@ -338,14 +350,11 @@ class TranslationUtilities(object):
 
         return ehrClassChildren;
 
-    # See if the children of this EHR
-    # See if other classes that are children of this EHR element, and have resolved FHIR connections, would be linked to from this mutual connection, thus strengthening the connection between the relationship.
+    # Once an EHR class (EHRA) and a FHIR class (FHIRA) are related -- because a child of EHRA (ChildA) and a connection of FHIRA (ConnectionA) have been child-matched together -- see if any of the siblings of ChildA have FHIR child matches themselves. For example, another child (ChildB) might have a FHIR child match (ConnectionB). If this is the case, is FHIR ConnectionA linked to FHIR ConnectionB? If so, this strengthens the case for the connection between the original, top EHR class and FHIR class connections -- EHRA and FHIRA -- because it shows that if this match is chosen, FHIRA class can replicate the connection between two of EHRA's children through a two-hop path of resource connections. Therefore, in the best case, the FHIR versions of all of EHRA's children are all connected together, through resource references, in a path from FHIRA. This puts less emphasis on finding a single FHIR class that connects to all of an EHR class's FHIR represented children (path, rather than one-to-many).
     @staticmethod
     def recreatableConnections(ehrClass, ehrClasses, ehrFHIRMatches, fhirConnections, path=[]):
 
         if len(ehrClasses) == 0: return path;
-
-        print str(ehrClass) + " " + str(ehrClasses) + " " + str(path);
 
         # Copy ehrClasses content to new object, as we'll be removing items.
         ehrClasses = set(list(ehrClasses)[:])
@@ -353,18 +362,13 @@ class TranslationUtilities(object):
 
         for sibling in ehrClasses:
 
-            print "Sibling: " + str(sibling) + " " + str(ehrClass == sibling) + " " + str(sibling not in ehrFHIRMatches.keys());
-
             if ( ehrClass == sibling or sibling not in ehrFHIRMatches.keys() ): continue;
 
-            print "Sibling FHIR version: " + str(ehrFHIRMatches[sibling][0][0]);
-            print "ehrClass FHIR version: " + str(ehrFHIRMatches[ehrClass][0][0]);
-            print "FHIR connections EHR class: " + str(fhirConnections[ehrFHIRMatches[ehrClass][0][0]]);
-
-            # If the FHIR versions of two EHR siblings connect
+            # If the FHIR versions of two EHR siblings connect, then we can replicate the link between two EHR children with connected FHIR classes.
             if ( ehrFHIRMatches[sibling][0][0] in [fhirConnection[0] for fhirConnection in fhirConnections[ehrFHIRMatches[ehrClass][0][0]]]  ):
 
                 path.append(ehrFHIRMatches[sibling][0]);
+                # Recurse in an attempt to find the best case.
                 recreatableConnections(sibling, ehrClasses, ehrFHIRMatches, fhirConnections, path);
 
         return path;
