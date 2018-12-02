@@ -1,4 +1,4 @@
-import pkgutil, importlib, pyclbr, inspect, sys
+import pkgutil, importlib, pyclbr, inspect, sys, operator
 
 from utils.utilities import Utilities;
 from translation.translationConstants import TranslationConstants;
@@ -364,8 +364,14 @@ class TranslationUtilities(object):
 
             if ( ehrClass == sibling or sibling not in ehrFHIRMatches.keys() ): continue;
 
+            ehrFHIRMatchesSortedSibling = sorted(ehrFHIRMatches[sibling].items(), key=operator.itemgetter(1));
+            ehrFHIRMatchesSortedSibling.reverse();
+
+            ehrFHIRMatchesSortedEHR = sorted(ehrFHIRMatches[ehrClass].items(), key=operator.itemgetter(1));
+            ehrFHIRMatchesSortedEHR.reverse();
+
             # If the FHIR versions of two EHR siblings connect, then we can replicate the link between two EHR children with connected FHIR classes.
-            if ( ehrFHIRMatches[sibling][0][0] in [fhirConnection[0] for fhirConnection in fhirConnections[ehrFHIRMatches[ehrClass][0][0]]]  ):
+            if ( ehrFHIRMatchesSortedSibling[0][0] in [fhirConnection[0] for fhirConnection in fhirConnections[ehrFHIRMatchesSortedEHR[0][0]]] ):
 
                 path.append(ehrFHIRMatches[sibling][0]);
                 # Recurse in an attempt to find the best case.
