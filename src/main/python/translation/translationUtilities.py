@@ -110,9 +110,9 @@ class TranslationUtilities(object):
         attributes = root.elementProperties(root());
 
         # List of parents (first element in tuple is this class).
-        parents = inspect.getmro(root)[1:]
+        parentList = inspect.getmro(root)[1:]
 
-        for parent in parents:
+        for parent in parentList:
 
             if ( not callable(getattr(parent, "elementProperties", None)) ): continue;
 
@@ -159,7 +159,8 @@ class TranslationUtilities(object):
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             attributeName = attributeContainer[0];
 
-            if addParentName: attributeName = attributeName + str(root.__name__); # ! Change this to add it as an extra child.
+            # Attempt to better contextualise a child by appending its parent name. TODO: add as extra child.
+            if addParentName: attributeName = attributeName + str(root.__name__);
 
             if children:
                 if not callable(attribute):
@@ -168,9 +169,6 @@ class TranslationUtilities(object):
             if parents:
                 if callable(attribute):
                     TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
-
-            else:
-                TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
 
             # Don't expand from within FHIRReference, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
@@ -206,6 +204,7 @@ class TranslationUtilities(object):
             return fhirChildAndParent;
 
         else:
+
             return fhirElements;
 
     # Aim to treat EHR classes with the same name as different entities if they have non-intersecting child classes.

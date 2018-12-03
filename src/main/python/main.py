@@ -28,7 +28,7 @@ if __name__ == "__main__":
         ft.translatePatient(action, None, sys.argv[2], sys.argv[3]);
 
     else:
-        FHIRTranslation.translatePatient("");
+        FHIRTranslation.translatePatient();
         #print FHIRTranslation.textSimilarity("medicine", "medication", True);
         #print Matches.match("drug", "medication", TranslationConstants.TEXT_SIMILARITY_WEIGHTING,  TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,  TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
         #print FHIRTranslation.matches("scheme", "system", FHIRTranslation.OVERALL_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD, FHIRTranslation.OVERALL_CHILD_SIMILARITY_THRESHOLD);

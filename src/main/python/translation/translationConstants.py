@@ -3,6 +3,7 @@ class TranslationConstants(object):
     MODELS_PATH = "models_subset";
 
     EHR_PATH = "tpp/tpp-extract";
+    # EHR_PATH = "tpp/tpp-full";
 
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95;
@@ -30,4 +31,5 @@ class TranslationConstants(object):
 
     EXCLUDED_FHIR_CLASSES = { "Extension", "FHIRReference" };
 
+    #SELECTIVE_RECURSE = [];
     SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
