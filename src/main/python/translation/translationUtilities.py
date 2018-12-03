@@ -121,23 +121,17 @@ class TranslationUtilities(object):
         # If the type of an attribute is simply 'FHIRReference' we aim to resolve the scope of this reference by adding duplicate attributes for each potential reference type.
         if resolveFHIRReferences:
 
-            #print "---> " + str(root);
-
             newAttributes = [];
 
             for attributeContainer in attributes:
 
                 if ( "FHIRReference" in attributeContainer[2].__name__ ):
 
-                    #print attributeContainer[0];
-
                     sourceLines = inspect.getsource(root).split("\n");
 
                     for sourceLine in sourceLines:
 
                         if ( "self." + attributeContainer[0] in sourceLine ):
-
-                            #print sourceLine;
 
                             # If the list of possible references happens not to be two lines later, try three lines later.
                             if "FHIRReference" not in sourceLines[sourceLines.index(sourceLine) + 2]:
@@ -165,8 +159,6 @@ class TranslationUtilities(object):
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             attributeName = attributeContainer[0];
 
-            #print str(attributeContainer);
-
             if addParentName: attributeName = attributeName + str(root.__name__); # ! Change this to add it as an extra child.
 
             if children:
@@ -180,7 +172,7 @@ class TranslationUtilities(object):
             else:
                 TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
 
-            # Don't expand from within FHIRReferences, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
+            # Don't expand from within FHIRReference, as it has a recursive reference to identifier (also doesn't appear to be captured correctly by the parser, e.g. organisation from Patient).
             # Extensions classes appear in every class so don't show anything unique.
             # Don't follow links to types that are of the root class itself.
             # and attributeContainer[0] not in set([j for i in classesToChildren.values() for j in i])
@@ -196,9 +188,9 @@ class TranslationUtilities(object):
             return classesToChildren[root];
 
     @staticmethod
-    def getFHIRClassChildren(fhirClass, linkedClasses, selectiveRecurse=[]):
+    def getFHIRClassChildren(fhirClass, linkedClasses, recurse=True, selectiveRecurse=[]):
 
-        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, linkedClasses, selectiveRecurse, []);
+        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, []);
 
         if linkedClasses and fhirElements != None:
 
