@@ -27,7 +27,7 @@ class TranslationUtilities(object):
 
     #TODO: Actually merge class with its backbone.
     @staticmethod
-    def getFHIRClasses(mergeBackboneElements=False):
+    def getFHIRClasses(mergeBackboneElements=False, mustBeCallable=True):
 
         fhirClasses = [];
 
@@ -36,11 +36,10 @@ class TranslationUtilities(object):
             # Don't use test modules as a potential match.
             if "_tests" in fhirModule: continue;
 
-            connectedClasses = [];
+            # Sorts the classes in order to always have the base class (non-backbone) first, e.g. Encounter first over something like EncounterLocation. Based on the assumption that shortest class names are the base element class.
+            for fhirClass in sorted(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys(), cmp=Utilities.classLengthSort):
 
-            for fhirClass in pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys():
-
-                if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
+                if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in fhirClass]): continue
 
                 # Import this module as we'll need it later to examine content of FHIR Class
                 importedModule = importlib.import_module(TranslationConstants.MODELS_PATH + "." + fhirModule);
@@ -48,34 +47,33 @@ class TranslationUtilities(object):
                 # Turn the fhirClass string into a fhirClass reference.
                 fhirClass = getattr(importedModule, fhirClass);
 
+                if mustBeCallable and not callable(fhirClass): continue;
+
                 # We don't want supporting classes, just main
                 # if (mergeBackboneElements):
                 if not mergeBackboneElements and "BackboneElement" in [base.__name__ for base in fhirClass.__bases__]: continue
 
-                if mergeBackboneElements:
-                    connectedClasses.append(fhirClass);
-                    # Sorts the classes in order to always have the base class (non-backbone) first, e.g. Encounter first over something like EncounterLocation.
-                    connectedClasses = sorted(connectedClasses, cmp=Utilities.classLengthSort);
+                if mergeBackboneElements and "BackboneElement" in [base.__name__ for base in fhirClass.__bases__]:
+                    fhirClasses[len(fhirClasses) - 1].append(fhirClass);
+                elif mergeBackboneElements:
+                    fhirClasses.append( [ fhirClass] );
                 else:
                     fhirClasses.append(fhirClass);
-
-            if mergeBackboneElements and len(connectedClasses):
-                fhirClasses.append(connectedClasses);
 
         return fhirClasses;
 
     @staticmethod
-    def getFHIRConnections(fhirClasses):
+    def getFHIRConnections(fhirClasses, excludeBackboneClasses=True):
 
         connections = {};
 
         for fhirClass in fhirClasses:
 
-            if fhirClass in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
+            if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in fhirClass.__name__]): continue
 
             for connectingClass in [t for t in (TranslationUtilities.getFHIRElements(fhirClass, {}, False, True, False, [], [], False, True, True, fhirClasses) or [])]:
 
-                if connectingClass.__name__ in TranslationConstants.EXCLUDED_FHIR_CLASSES: continue;
+                if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in connectingClass.__name__]) or ( excludeBackboneClasses and ( "BackboneElement" in [base.__name__ for base in connectingClass.__bases__])): continue;
 
                 # Log bi-directional connection.
                 connections.setdefault(fhirClass,set()).add((connectingClass, "Out"));
@@ -95,7 +93,7 @@ class TranslationUtilities(object):
     @staticmethod
     def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
 
-        if ( root.__name__ in TranslationConstants.EXCLUDED_FHIR_CLASSES ): return [];
+        if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in root.__name__]): return [];
 
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -162,6 +160,8 @@ class TranslationUtilities(object):
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             attributeName = attributeContainer[0];
 
+            if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in attributeName]): continue
+
             # Attempt to better contextualise a child by appending its parent name. TODO: add as extra child.
             if addParentName: attributeName = attributeName + str(root.__name__);
 
@@ -183,7 +183,6 @@ class TranslationUtilities(object):
                 visited.append(attributeContainer[0]);
                 TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited);
 
-        # !!! RATHER THAN RECURSING WE SHOULD USE FHIR CONNECTIONS TO ADD CHILDREN OF CLASSES BOTH CONNECTED OUTTO FROM THIS CLASS, AND RECEIVING LINKS IN FROM.
         if recurse:
             return classesToChildren;
 

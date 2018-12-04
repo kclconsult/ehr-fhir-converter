@@ -12,7 +12,7 @@ class Utilities(object):
     MODELS_PATH = "models_subset";
 
     @staticmethod
-    def classLengthSort(classA, classB): return len(classA.__name__) - len(classB.__name__);
+    def classLengthSort(classA, classB): return len(str(classA)) - len(str(classB));
 
     @staticmethod
     def mergeListOfLists(list): return [item for sublist in list for item in sublist];
