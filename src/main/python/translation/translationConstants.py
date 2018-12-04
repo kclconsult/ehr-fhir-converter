@@ -29,7 +29,9 @@ class TranslationConstants(object):
 
     CONTEXT_WEIGHTING = 2;
 
-    EXCLUDED_FHIR_CLASSES = { "Extension", "FHIRReference" };
+    EXCLUDED_FHIR_CLASSES = { "Extension", "FHIRReference", "BackboneElement", "DomainResource" };
 
-    #SELECTIVE_RECURSE = [];
+    # SELECTIVE_RECURSE = [];
     SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
+
+    FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA = ["value", "text"];

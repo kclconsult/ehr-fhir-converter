@@ -95,14 +95,16 @@ class TranslationUtilities(object):
     @staticmethod
     def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
 
+        if ( root.__name__ in TranslationConstants.EXCLUDED_FHIR_CLASSES ): return [];
+
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
 
         # Ignore test classes.
-        if ( unittest.TestCase in inspect.getmro(root) or Exception in inspect.getmro(root) ): return;
+        if ( unittest.TestCase in inspect.getmro(root) or Exception in inspect.getmro(root) ): return [];
 
         # Don't examine classes that don't use the 'elementsProperties' approach to list attributes.
-        if ( not callable(getattr(root, "elementProperties", None)) ): return;
+        if ( not callable(getattr(root, "elementProperties", None)) ): return [];
 
         if ( root not in classesToChildren.keys() ): classesToChildren[root] = set();
 
@@ -116,6 +118,7 @@ class TranslationUtilities(object):
 
             if ( not callable(getattr(parent, "elementProperties", None)) ): continue;
 
+            # Don't reinclude attributes that are already included in a parent.
             attributes = [item for item in attributes if item not in parent.elementProperties(parent())]
 
         # If the type of an attribute is simply 'FHIRReference' we aim to resolve the scope of this reference by adding duplicate attributes for each potential reference type.
@@ -163,7 +166,8 @@ class TranslationUtilities(object):
             if addParentName: attributeName = attributeName + str(root.__name__);
 
             if children:
-                if not callable(attribute):
+                # If a parent child (linked to another FHIR resource) has a suitable field that can hold data, then it doesn't matter if it's a parent, as it can effectively just act as a named container.
+                if not callable(attribute) or not set(TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA).isdisjoint(set(TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, True, False, False))):
                     TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
 
             if parents:
@@ -179,6 +183,7 @@ class TranslationUtilities(object):
                 visited.append(attributeContainer[0]);
                 TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited);
 
+        # !!! RATHER THAN RECURSING WE SHOULD USE FHIR CONNECTIONS TO ADD CHILDREN OF CLASSES BOTH CONNECTED OUTTO FROM THIS CLASS, AND RECEIVING LINKS IN FROM.
         if recurse:
             return classesToChildren;
 
@@ -188,7 +193,7 @@ class TranslationUtilities(object):
     @staticmethod
     def getFHIRClassChildren(fhirClass, linkedClasses, recurse=True, selectiveRecurse=[]):
 
-        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, []);
+        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, True, recurse, selectiveRecurse, []);
 
         if linkedClasses and fhirElements != None:
 
