@@ -39,7 +39,7 @@ class TranslationUtilities(object):
             # Sorts the classes in order to always have the base class (non-backbone) first, e.g. Encounter first over something like EncounterLocation. Based on the assumption that shortest class names are the base element class.
             for fhirClass in sorted(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys(), cmp=Utilities.classLengthSort):
 
-                if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in fhirClass]): continue
+                if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in fhirClass]): continue
 
                 # Import this module as we'll need it later to examine content of FHIR Class
                 importedModule = importlib.import_module(TranslationConstants.MODELS_PATH + "." + fhirModule);
@@ -69,11 +69,11 @@ class TranslationUtilities(object):
 
         for fhirClass in fhirClasses:
 
-            if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in fhirClass.__name__]): continue
+            if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in fhirClass.__name__]): continue
 
             for connectingClass in [t for t in (TranslationUtilities.getFHIRElements(fhirClass, {}, False, True, False, [], [], False, True, True, fhirClasses) or [])]:
 
-                if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in connectingClass.__name__]) or ( excludeBackboneClasses and ( "BackboneElement" in [base.__name__ for base in connectingClass.__bases__])): continue;
+                if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in connectingClass.__name__]) or ( excludeBackboneClasses and ( "BackboneElement" in [base.__name__ for base in connectingClass.__bases__])): continue;
 
                 # Log bi-directional connection.
                 connections.setdefault(fhirClass,set()).add((connectingClass, "Out"));
@@ -93,7 +93,7 @@ class TranslationUtilities(object):
     @staticmethod
     def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
 
-        if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in root.__name__]): return [];
+        if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in root.__name__]): return [];
 
         # Convert string to class, if not class.
         if ( not inspect.isclass(root) ): root = eval(root);
@@ -160,14 +160,17 @@ class TranslationUtilities(object):
             attribute = getattr(attributeContainer[2], "elementProperties", None)
             attributeName = attributeContainer[0];
 
-            if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASSES if excludedMatch in attributeName]): continue
+            if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in attributeName]): continue
 
             # Attempt to better contextualise a child by appending its parent name. TODO: add as extra child.
             if addParentName: attributeName = attributeName + str(root.__name__);
 
             if children:
+                elementsOfChildren = TranslationUtilities.getFHIRElements(attributeContainer[2], {}, True, False, False);
+
                 # If a parent child (linked to another FHIR resource) has a suitable field that can hold data, then it doesn't matter if it's a parent, as it can effectively just act as a named container.
-                if not callable(attribute) or not set(TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA).isdisjoint(set(TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, True, False, False))):
+                if not callable(attribute) or not set(TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA).isdisjoint(set(elementsOfChildren)):
+
                     TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
 
             if parents:
@@ -192,24 +195,25 @@ class TranslationUtilities(object):
     @staticmethod
     def getFHIRClassChildren(fhirClass, linkedClasses, recurse=True, selectiveRecurse=[]):
 
-        fhirElements = TranslationUtilities.getFHIRElements(fhirClass, {}, True, True, recurse, selectiveRecurse, []);
+        # Classes plural because may also include linked classes.
+        fhirClassesToChildren = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, []);
 
-        if linkedClasses and fhirElements != None:
+        if fhirClassesToChildren != None:
 
-            fhirChildAndParent = [];
+            fhirChildrenOrChildrenAndParent = [];
 
-            for fhirClassToChildren in fhirElements:
+            for fhirClassToChildren in fhirClassesToChildren:
 
-                for fhirClassChild in fhirElements[fhirClassToChildren]:
+                for fhirClassChild in fhirClassesToChildren[fhirClassToChildren]:
 
                     # If linked classes are examined, it's not just the name of the fhirChild for the supplied class added, but also the name of the fhir children in each linked class, and entries are stored as tuples so the origin of the child can be traced.
-                    fhirChildAndParent.append((fhirClassChild, fhirClassToChildren));
+                    if ( linkedClasses ):
+                        fhirChildrenOrChildrenAndParent.append((fhirClassChild, fhirClassToChildren));
 
-            return fhirChildAndParent;
+                    else:
+                        fhirChildrenOrChildrenAndParent.append(fhirClassChild);
 
-        else:
-
-            return fhirElements;
+            return fhirChildrenOrChildrenAndParent;
 
     # Aim to treat EHR classes with the same name as different entities if they have non-intersecting child classes.
     @staticmethod
