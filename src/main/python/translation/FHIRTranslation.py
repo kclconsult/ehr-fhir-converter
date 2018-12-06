@@ -48,8 +48,10 @@ class FHIRTranslation(object):
 
     @staticmethod
     def getPatient(id):
-        # return SystmOne().getPatientRecord(id);
-        return TranslationUtilities.ehrClassToExamples(ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml').find("Response"));
+        #return TranslationUtilities.ehrClassToExamples(ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml').find("Response"));
+        return ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml').find("Response");
+
+    import models_subset.patient;
 
     @staticmethod
     def translatePatient():
@@ -72,9 +74,9 @@ class FHIRTranslation(object):
 
         for ehrClass in ehrClasses:
 
-            children = TranslationUtilities.getEHRClassChildren(patientXML, ehrClass, True, False);
-            if len(children):
-                ehrClassesToChildren = Utilities.mergeDicts([ehrClassesToChildren, children]);
+            children = TranslationUtilities.getEHRClassChildren(patientXML, ehrClass, True, False, True);
+
+            if len(children): ehrClassesToChildren = Utilities.mergeDicts([ehrClassesToChildren, children]);
 
         # Map each FHIR class not only to its own children, but also the children of its backbone elements.
         fhirClassesToChildren = FHIRTranslation.getFHIRClassesToChildren(TranslationUtilities.getFHIRClasses(True), False);
@@ -88,32 +90,36 @@ class FHIRTranslation(object):
 
         for fhirClass in fhirClasses:
 
-            classesExamined += 1;
-            print str((classesExamined / float(len(fhirClasses))) * 100) + "%";
-
             placedEHRChildrenInThisClassOrConnected = 0;
             placed = [];
+            usedFHIRClassesForPlacement = set();
             hops = -1;
 
             for ehrClass in ehrClasses:
 
                 for ehrChild in ehrClassesToChildren[ehrClass]:
 
-                    placement = FHIRTranslation.recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrChild, 0, []);
+                    placement = FHIRTranslation.recursivelyPlaceEHRchild(False, fhirClass, fhirClassesToChildren, fhirConnections, ehrClass, ehrChild, 0, []);
 
                     if ( placement ):
                         placedEHRChildrenInThisClassOrConnected += 1;
                         hops += placement[2];
-                        placed.append((ehrChild, placement));
+                        usedFHIRClassesForPlacement.add(placement[1]);
+                        placed.append(((ehrChild, ehrClass), placement));
 
-            candidateEntryPoints.append((fhirClass, (placedEHRChildrenInThisClassOrConnected / float(len(set(set().union(*ehrClassesToChildren.values()))))), hops, placed));
+            candidateEntryPoints.append((fhirClass, ( placedEHRChildrenInThisClassOrConnected / float(len(set(set().union(*ehrClassesToChildren.values())))) ), str(hops), "Average hops: " + str( hops / float(placedEHRChildrenInThisClassOrConnected) ), "Classes used: " + str(len(set(usedFHIRClassesForPlacement))), placed));
 
             if placedEHRChildrenInThisClassOrConnected == len(set(set().union(*ehrClassesToChildren.values()))): break;
 
-        print sorted(candidateEntryPoints, key = operator.itemgetter(1, 2));
+            classesExamined += 1;
+
+            print str((classesExamined / float(len(fhirClasses))) * 100) + "%";
+
+        for entry in sorted(candidateEntryPoints, key = operator.itemgetter(1, 2)):
+            print str(entry) + "\n";
 
     @staticmethod
-    def recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrChild, hops, visited):
+    def recursivelyPlaceEHRchild(alsoMatchParent, fhirClass, fhirClassesToChildren, fhirConnections, ehrParent, ehrChild, hops, visited):
 
         visited.append(fhirClass);
 
@@ -121,7 +127,7 @@ class FHIRTranslation(object):
 
         for fhirChild in fhirClassesToChildren[fhirClass]:
 
-            if Matches.matches(fhirChild, ehrChild, TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD) and FHIRTranslation.dataTypeCompatible("", ""):
+            if ( not alsoMatchParent or Matches.fuzzyMatch(ehrParent, fhirClass.__name__) > TranslationConstants.FUZZY_SIMILARITY_THRESHOLD ) and Matches.matches(fhirChild, ehrChild, TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD) and FHIRTranslation.dataTypeCompatible("", ""):
 
                 return (fhirChild, fhirClass, hops);
 
@@ -131,7 +137,7 @@ class FHIRTranslation(object):
 
             if connectedResource not in visited:
 
-                connectedResourceResult = FHIRTranslation.recursivelyPlaceEHRchild(connectedResource, fhirClassesToChildren, fhirConnections, ehrChild,  hops, visited);
+                connectedResourceResult = FHIRTranslation.recursivelyPlaceEHRchild(alsoMatchParent, connectedResource, fhirClassesToChildren, fhirConnections, ehrParent, ehrChild,  hops, visited);
 
             if ( connectedResourceResult ): return connectedResourceResult;
 

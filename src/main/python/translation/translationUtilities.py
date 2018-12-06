@@ -224,7 +224,7 @@ class TranslationUtilities(object):
 
         for depth in range(len(noDuplicateEHRClassesAtDepths) -1, 0, -1):
 
-            # Expand EHR classes with children that are a subset of one or more other EHR classes with the same name to include the additional children held by that other class. This method will additionally ensure EHR classes are subsumed by larger EHR classes created during the expansion process.
+            # Expand EHR classes with children that are a subset of one or more other EHR classes with the same name to include the additional children held by that other class. This method will not ensure EHR classes are subsumed by larger EHR classes created during the expansion process.
             for ehrClass in noDuplicateEHRClassesAtDepths[depth]:
 
                 allParentsAndChildren = [];
@@ -306,28 +306,9 @@ class TranslationUtilities(object):
             return [element.tag for element in set(set().union(*Utilities.getXMLElements(patientXML, {}, children, parents, duplicates).values()))];
 
     @staticmethod
-    def filterChildrenParents(ehrClassChildren, filter):
-
-        ehrChildrenToRemove = [];
-
-        for ehrClassChild in ehrClassChildren:
-
-            childElements = [element[1] for element in ehrClassChildren[ehrClassChild] if element[0] == filter];
-
-            if ( childElements ): ehrClassChildren[ehrClassChild] = childElements;
-            else: ehrChildrenToRemove.append(ehrClassChild);
-
-        all(map(ehrClassChildren.pop, ehrChildrenToRemove));
-
-        return ehrClassChildren;
-
-    @staticmethod
-    def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False, groupEHRChildren=False):
+    def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False):
 
         ehrClassChildren = {};
-
-        # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to find all possible examples of children that can be listed under that class.
-        allEHRClassChildren = []
 
         for ehrClassExample in patientXML.findall(".//" + ehrClass):
 
@@ -335,45 +316,9 @@ class TranslationUtilities(object):
 
             if 0 in ehrClassExampleDepthsToChildren.keys():
 
-                if ( not allEHRChildren or groupEHRChildren ):
+                ehrClassChildren.setdefault(ehrClass, []).extend([element.tag for element in ehrClassExampleDepthsToChildren[0]]);
 
-                    ehrClassChildren.setdefault(ehrClass, []).extend([element.tag for element in ehrClassExampleDepthsToChildren[0]]);
-
-                else:
-
-                    allEHRClassChildren.append({ ehrClassExample: [element.tag for element in ehrClassExampleDepthsToChildren[0]] });
-
+            # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to find all possible examples of children that can be listed under that class.
             if ( not allEHRChildren ): break;
 
-        if ( groupEHRChildren ): ehrClassChildren = Utilities.mergeDicts([allEHRClassChildren]);
-
         return ehrClassChildren;
-
-    # Once an EHR class (EHRA) and a FHIR class (FHIRA) are related -- because a child of EHRA (ChildA) and a connection of FHIRA (ConnectionA) have been child-matched together -- see if any of the siblings of ChildA have FHIR child matches themselves. For example, another child (ChildB) might have a FHIR child match (ConnectionB). If this is the case, is FHIR ConnectionA linked to FHIR ConnectionB? If so, this strengthens the case for the connection between the original, top EHR class and FHIR class connections -- EHRA and FHIRA -- because it shows that if this match is chosen, FHIRA class can replicate the connection between two of EHRA's children through a two-hop path of resource connections. Therefore, in the best case, the FHIR versions of all of EHRA's children are all connected together, through resource references, in a path from FHIRA. This puts less emphasis on finding a single FHIR class that connects to all of an EHR class's FHIR represented children (path, rather than one-to-many).
-    @staticmethod
-    def recreatableConnections(ehrClass, ehrClasses, ehrFHIRMatches, fhirConnections, path=[]):
-
-        if len(ehrClasses) == 0: return path;
-
-        # Copy ehrClasses content to new object, as we'll be removing items.
-        ehrClasses = set(list(ehrClasses)[:])
-        ehrClasses.remove(ehrClass);
-
-        for sibling in ehrClasses:
-
-            if ( ehrClass == sibling or sibling not in ehrFHIRMatches.keys() ): continue;
-
-            ehrFHIRMatchesSortedSibling = sorted(ehrFHIRMatches[sibling].items(), key=operator.itemgetter(1));
-            ehrFHIRMatchesSortedSibling.reverse();
-
-            ehrFHIRMatchesSortedEHR = sorted(ehrFHIRMatches[ehrClass].items(), key=operator.itemgetter(1));
-            ehrFHIRMatchesSortedEHR.reverse();
-
-            # If the FHIR versions of two EHR siblings connect, then we can replicate the link between two EHR children with connected FHIR classes.
-            if ( ehrFHIRMatchesSortedSibling[0][0] in [fhirConnection[0] for fhirConnection in fhirConnections[ehrFHIRMatchesSortedEHR[0][0]]] ):
-
-                path.append(ehrFHIRMatches[sibling][0]);
-                # Recurse in an attempt to find the best case.
-                recreatableConnections(sibling, ehrClasses, ehrFHIRMatches, fhirConnections, path);
-
-        return path;

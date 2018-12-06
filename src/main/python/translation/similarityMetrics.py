@@ -43,6 +43,21 @@ class SimilarityMetrics(object):
 
     # Similarity Metric B
     @staticmethod
+    def morphologicalSimilarity(ehrAttribute, fhirAttribute, lemmaSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
+
+        if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute): return 0;
+
+        highestSimilarity = 0;
+
+        for lemma in Utilities.lemmas(ehrAttribute):
+
+            if SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True) > highestSimilarity and SimilarityMetrics.textMatch(lemma, fhirAttribute, True, lemmaSimilarityThreshold):
+                highestSimilarity = SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True);
+
+        return highestSimilarity;
+
+    # Similarity Metric C
+    @staticmethod
     def semanticSimilarity(ehrAttribute, fhirAttribute, synonymSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD, useDefinition=False, alsoUseMorphologicalSimilarity=False, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
 
         # If these attributes would be associated via a text match instead, then don't also reevaluate their similarity via the text similarity below.
@@ -109,35 +124,7 @@ class SimilarityMetrics(object):
                 # Get similarity between synonym for ehrAttribute and fhirAttribute (not synonyms that are the ehr attribute itself). If this is over a given threshold, AND it is greater than previously marked highest values, update highest similarity.
                 if not SimilarityMetrics.textSimilarity(synonym, ehrAttribute) == 1.0 and max(textSimilarity, morphologicalSimilarity) > highestSimilarity:
 
-                    textMatch = SimilarityMetrics.textMatch(Utilities.separationToCapital(synonym), fhirAttribute, True, );
-
-                    if ( alsoUseMorphologicalSimilarity ):
-                        morphologicalMatch = SimilarityMetrics.morphologicalMatch(Utilities.separationToCapital(synonym), fhirAttribute);
-
-                    else:
-                        morphologicalMatch = 0;
-
-                    # Only update highest similarity if it is significant.
-                    if ( textMatch > morphologicalMatch ):
-                        highestSimilarity = textSimilarity;
-
-                    else:
-                        highestSimilarity = morphologicalSimilarity;
-
-        return highestSimilarity;
-
-     # Similarity Metric C
-    @staticmethod
-    def morphologicalSimilarity(ehrAttribute, fhirAttribute, lemmaSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
-
-        if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute): return 0;
-
-        highestSimilarity = 0;
-
-        for lemma in Utilities.lemmas(ehrAttribute):
-
-            if SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True) > highestSimilarity and SimilarityMetrics.textMatch(lemma, fhirAttribute, True, lemmaSimilarityThreshold):
-                highestSimilarity = SimilarityMetrics.textSimilarity(lemma, fhirAttribute, True);
+                    highestSimilarity = max(textSimilarity, morphologicalSimilarity);
 
         return highestSimilarity;
 
