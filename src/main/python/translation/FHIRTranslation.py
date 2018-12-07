@@ -107,7 +107,7 @@ class FHIRTranslation(object):
                         usedFHIRClassesForPlacement.add(placement[1]);
                         placed.append(((ehrChild, ehrClass), placement));
 
-            candidateEntryPoints.append((fhirClass, ( placedEHRChildrenInThisClassOrConnected / float(len(set(set().union(*ehrClassesToChildren.values())))) ), str(hops), "Average hops: " + str( hops / float(placedEHRChildrenInThisClassOrConnected) ), "Classes used: " + str(len(set(usedFHIRClassesForPlacement))), placed));
+            if ( placedEHRChildrenInThisClassOrConnected > 0 ): candidateEntryPoints.append((fhirClass, ( placedEHRChildrenInThisClassOrConnected / float(len(set(set().union(*ehrClassesToChildren.values())))) ), str(hops), "Average hops: " + str( hops / float(placedEHRChildrenInThisClassOrConnected) ), "Classes used: " + str(len(set(usedFHIRClassesForPlacement))), placed));
 
             if placedEHRChildrenInThisClassOrConnected == len(set(set().union(*ehrClassesToChildren.values()))): break;
 
@@ -125,20 +125,28 @@ class FHIRTranslation(object):
 
         hops += 1;
 
+        strongestMatch = -sys.maxint -1
+        strongestMatchDetails = None;
+
         for fhirChild in fhirClassesToChildren[fhirClass]:
 
             if ( not alsoMatchParent or Matches.fuzzyMatch(ehrParent, fhirClass.__name__) > TranslationConstants.FUZZY_SIMILARITY_THRESHOLD ) and Matches.matches(fhirChild, ehrChild, TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD) and FHIRTranslation.dataTypeCompatible("", ""):
 
-                return (fhirChild, fhirClass, hops);
+                matchStrength = Matches.match(ehrChild, fhirChild, SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING, SimilarityMetrics.semanticSimilarity, [], TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING, SimilarityMetrics.morphologicalSimilarity, [], TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, 0, 0, 0, 0, False, False, True);
 
-        for connectedResource in fhirConnections:
+                if ( matchStrength > strongestMatch ):
 
-            connectedResourceResult = "";
+                    strongestMatch = matchStrength;
+                    strongestMatchDetails = (fhirChild, fhirClass, hops);
 
-            if connectedResource not in visited:
+        if ( strongestMatchDetails ): return strongestMatchDetails;
 
-                connectedResourceResult = FHIRTranslation.recursivelyPlaceEHRchild(alsoMatchParent, connectedResource, fhirClassesToChildren, fhirConnections, ehrParent, ehrChild,  hops, visited);
+        if ( fhirClass not in fhirConnections.keys() or hops >= TranslationConstants.MAX_HOPS ): return None;
 
-            if ( connectedResourceResult ): return connectedResourceResult;
+        for connectedResource in fhirConnections[fhirClass]:
+
+            if connectedResource[0] not in visited:
+
+                return FHIRTranslation.recursivelyPlaceEHRchild(alsoMatchParent, connectedResource[0], fhirClassesToChildren, fhirConnections, ehrParent, ehrChild,  hops, visited);
 
         return None;

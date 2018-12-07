@@ -2,8 +2,8 @@ class TranslationConstants(object):
 
     MODELS_PATH = "models_subset";
 
-    # EHR_PATH = "tpp/tpp-extract";
-    EHR_PATH = "tpp/tpp-full";
+    EHR_PATH = "tpp/tpp-extract";
+    # EHR_PATH = "tpp/tpp-full";
 
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95;
@@ -32,3 +32,5 @@ class TranslationConstants(object):
     # SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
 
     FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA = ["value", "text"];
+
+    MAX_HOPS = 5;
