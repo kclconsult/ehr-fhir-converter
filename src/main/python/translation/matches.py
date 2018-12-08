@@ -1,3 +1,5 @@
+import sys
+
 from translation.similarityMetrics import SimilarityMetrics
 from translation.translationConstants import TranslationConstants
 from utils.utilities import Utilities
@@ -5,11 +7,21 @@ from utils.utilities import Utilities
 class Matches(object):
 
     @staticmethod
-    def match(ehrClassField, fhirClassField, textSimilarity=SimilarityMetrics.textSimilarity, textSimilarityArgs=[], textSimilarityWeighting=TranslationConstants.TEXT_SIMILARITY_WEIGHTING, semanticSimilarity=SimilarityMetrics.semanticSimilarity, semanticSimilarityArgs=[], semanticSimilarityWeighting=TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING, morphologicalSimilarity=SimilarityMetrics.morphologicalSimilarity, morphologicalSimilarityArgs=[], morphologicalSimilarityWeighting=TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, overallSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False, average=False):
+    def match(ehrClassField, fhirClassField,
+    textSimilarity=SimilarityMetrics.textSimilarity, textSimilarityArgs=[], textSimilarityWeighting=TranslationConstants.TEXT_SIMILARITY_WEIGHTING,
+    semanticSimilarity=SimilarityMetrics.semanticSimilarity, semanticSimilarityArgs=[], semanticSimilarityWeighting=TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,
+    morphologicalSimilarity=SimilarityMetrics.morphologicalSimilarity, morphologicalSimilarityArgs=[], morphologicalSimilarityWeighting=TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING,
+    textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+    semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+    morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+    overallSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+    highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT,
+    firstPastThreshold=TranslationConstants.METRICS_FIRST_PAST_THRESHOLD,
+    highestStrength=TranslationConstants.METRICS_HIGHEST_STRENGTH,
+    combined=TranslationConstants.METRICS_COMBINED,
+    average=TranslationConstants.METRICS_AVERAGE):
 
         textSimilarityValue = SimilarityMetrics.compositeStringSimilarity(ehrClassField, fhirClassField, textSimilarity, textSimilarityArgs, highestCompositeResult) * textSimilarityWeighting;
-
-        # This should change if highest result is not being used, perhaps to number of words that match?
 
         if ( firstPastThreshold and textSimilarityValue >= textSimilarityThreshold  ):
             return SimilarityMetrics.compositeStringSimilarity(ehrClassField, fhirClassField, textSimilarity, textSimilarityArgs, highestCompositeResult);
@@ -46,6 +58,69 @@ class Matches(object):
 
         return 0;
 
+    # See if there is a match at all, based on thresholds.
+    @staticmethod
+    def matches(ehr, fhir,
+        textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+        semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+        morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+        similarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+        highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT,
+        firstPastThreshold=TranslationConstants.METRICS_FIRST_PAST_THRESHOLD,
+        highestStrength=TranslationConstants.METRICS_HIGHEST_STRENGTH,
+        combined=TranslationConstants.METRICS_COMBINED,
+        average=TranslationConstants.METRICS_AVERAGE
+    ):
+
+        if ( Matches.match(ehr, fhir, \
+            SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING, \
+            SimilarityMetrics.semanticSimilarity, [], TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING, \
+            SimilarityMetrics.morphologicalSimilarity, [], TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, \
+            textSimilarityThreshold, \
+            semanticSimilarityThreshold, \
+            morphologicalSimilarityThreshold, \
+            similarityThreshold, \
+            highestCompositeResult, \
+            firstPastThreshold, \
+            highestStrength, \
+            combined, \
+            average \
+        ) > 0 ):
+
+            return True;
+
+        else:
+
+            return False;
+
+    # Abstraction for convenience
+    @staticmethod
+    def matchStrength(
+        ehrChild, fhirChild,
+        textSimilarityWeighting = TranslationConstants.TEXT_SIMILARITY_WEIGHTING,
+        semanticSimilarityWeighting = TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,
+        morphologicalSimilarityWeighting = TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING,
+        highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT,
+        firstPastThreshold=TranslationConstants.METRICS_FIRST_PAST_THRESHOLD,
+        highestStrength=TranslationConstants.METRICS_HIGHEST_STRENGTH,
+        combined=TranslationConstants.METRICS_COMBINED,
+        average=TranslationConstants.METRICS_AVERAGE
+    ):
+
+        return Matches.match(
+            ehrChild, fhirChild,
+            SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING,
+            SimilarityMetrics.semanticSimilarity, [], TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,
+            SimilarityMetrics.morphologicalSimilarity, [],
+            TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING,
+            0, 0, 0, 0,
+            highestCompositeResult,
+            firstPastThreshold,
+            highestStrength,
+            combined,
+            average
+        );
+
     @staticmethod
     def fuzzyMatch(ehrClass, fhirClass):
 
@@ -53,13 +128,3 @@ class Matches(object):
         fuzzyMatch = Matches.match(ehrClass, fhirClass, SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING, SimilarityMetrics.semanticSimilarity, [TranslationConstants.TEXT_SIMILARITY_THRESHOLD, False, True, 0.75]);
 
         return fuzzyMatch;
-
-    # See if there is a match at all, based on thresholds.
-    @staticmethod
-    def matches(ehr, fhir, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, similarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, highestCompositeResult=True, firstPastThreshold=True, highestStrength=False, combined=False, average=False):
-
-        if ( Matches.match(ehr, fhir, SimilarityMetrics.textSimilarity, [], TranslationConstants.TEXT_SIMILARITY_WEIGHTING, SimilarityMetrics.semanticSimilarity, [], TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING, SimilarityMetrics.morphologicalSimilarity, [], TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, textSimilarityThreshold, semanticSimilarityThreshold, morphologicalSimilarityThreshold, similarityThreshold, highestCompositeResult, firstPastThreshold, highestStrength, combined, average) > 0 ):
-            return True;
-
-        else:
-            return False;

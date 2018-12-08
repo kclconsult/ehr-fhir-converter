@@ -1,4 +1,4 @@
-import pkgutil, importlib, pyclbr, inspect, sys, operator
+import pkgutil, importlib, pyclbr, inspect, sys, operator, re
 
 from utils.utilities import Utilities;
 from translation.translationConstants import TranslationConstants;
@@ -25,7 +25,6 @@ import models_subset.codeableconcept;
 
 class TranslationUtilities(object):
 
-    #TODO: Actually merge class with its backbone.
     @staticmethod
     def getFHIRClasses(mergeBackboneElements=False, mustBeCallable=True):
 
@@ -89,7 +88,6 @@ class TranslationUtilities(object):
         else:
             classesToChildren[root].add(attributeName);
 
-    # NB. FHIR is not hierarchical.
     @staticmethod
     def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
 
@@ -162,16 +160,19 @@ class TranslationUtilities(object):
 
             if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in attributeName]): continue
 
-            # Attempt to better contextualise a child by appending its parent name. TODO: add as extra child.
-            if addParentName: attributeName = attributeName + str(root.__name__);
 
             if children:
                 elementsOfChildren = TranslationUtilities.getFHIRElements(attributeContainer[2], {}, True, False, False);
 
-                # If a parent child (linked to another FHIR resource) has a suitable field that can hold data, then it doesn't matter if it's a parent, as it can effectively just act as a named container.
+                # If a parent child (linked to another FHIR resource) has a suitable field that can hold data (e.g. value, text), then it doesn't matter if it's a parent, as it can effectively just act as a named container, so it might as well be a child.
                 if not callable(attribute) or not set(TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA).isdisjoint(set(elementsOfChildren)):
 
                     TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
+
+                    # Add an additional pseudoelement with the parent name appended, whiich aims to represents the context given by the parent (e.g. child: first (not enough on its own) parent: HumanName full: firstHumanName (better representation of what is stored)).
+                    if addParentName:
+
+                        TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName + str(root.__name__));
 
             if parents:
                 if callable(attribute):
@@ -184,7 +185,7 @@ class TranslationUtilities(object):
             if ( ( recurse and len(selectiveRecurse) == 0 ) or ( recurse and str(root.__name__) in selectiveRecurse ) or ( recurse and str(attributeContainer[2].__name__) in selectiveRecurse ) ) and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[2] != root and attributeContainer[0] not in visited:
 
                 visited.append(attributeContainer[0]);
-                TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited);
+                TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited, addParentName, attributeTypeOverAttributeName, resolveFHIRReferences, otherFHIRClasses);
 
         if recurse:
             return classesToChildren;
@@ -196,7 +197,7 @@ class TranslationUtilities(object):
     def getFHIRClassChildren(fhirClass, linkedClasses, recurse=True, selectiveRecurse=[]):
 
         # Classes plural because may also include linked classes.
-        fhirClassesToChildren = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, []);
+        fhirClassesToChildren = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, [], True);
 
         if fhirClassesToChildren != None:
 
@@ -214,6 +215,36 @@ class TranslationUtilities(object):
                         fhirChildrenOrChildrenAndParent.append(fhirClassChild);
 
             return fhirChildrenOrChildrenAndParent;
+
+    @staticmethod
+    def getFHIRClassChildType(fhirChild, fhirClass, addParentName=True):
+
+        # If we're adding pseudo child elements, we won't be able to derive a type for them (because they don't exist), so remove parent suffix.
+        if ( addParentName ):
+
+            if ( re.match( "[a-zA-Z]+" + fhirClass.__name__ + "[a-zA-Z]*" , fhirChild ) ):
+
+                fhirChild = fhirChild[:fhirChild.index(fhirClass.__name__)];
+
+        sourceLines = inspect.getsource(fhirClass).split("\n");
+
+        for sourceLine in sourceLines:
+
+            if ( "self." + fhirChild in sourceLine ):
+
+                for type in TranslationConstants.TYPES_TO_REGEX.keys():
+
+                    if ( type in sourceLines[sourceLines.index(sourceLine) + 2].strip() ):
+
+                        return type;
+
+                # If this isn't a type line, it's a resource reference line, and as the only resources permitted to act as children are effective leaf nodes, return string.
+                return "str";
+
+        print str(fhirClass) + " " + str(fhirChild);
+        sys.exit();
+
+        return None;
 
     # Aim to treat EHR classes with the same name as different entities if they have non-intersecting child classes.
     @staticmethod

@@ -58,7 +58,7 @@ class SimilarityMetrics(object):
 
     # Similarity Metric C
     @staticmethod
-    def semanticSimilarity(ehrAttribute, fhirAttribute, synonymSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD, useDefinition=False, alsoUseMorphologicalSimilarity=False, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
+    def semanticSimilarity(ehrAttribute, fhirAttribute, synonymSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD, useDefinition=False, alsoUseMorphologicalSimilarity=False, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD, highestResult=True):
 
         # If these attributes would be associated via a text match instead, then don't also reevaluate their similarity via the text similarity below.
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;
@@ -112,11 +112,11 @@ class SimilarityMetrics(object):
 
             for synonym in synonyms:
 
-                textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, [synonymSimilarityThreshold], False);
+                textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, [synonymSimilarityThreshold], highestResult);
 
                 # Synonyms may also be grammatical variants as opposed to just text matches.
                 if ( alsoUseMorphologicalSimilarity ):
-                    morphologicalSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.morphologicalSimilarity, [morphologicalSimilarityThreshold], False);
+                    morphologicalSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.morphologicalSimilarity, [morphologicalSimilarityThreshold], highestResult);
 
                 else:
                     morphologicalSimilarity = 0;
@@ -160,6 +160,7 @@ class SimilarityMetrics(object):
             totalSimilarity += highestSimilarityForEHRWord;
 
         if ( highestResult ):
+
             return highestSimilarity;
 
         else:
