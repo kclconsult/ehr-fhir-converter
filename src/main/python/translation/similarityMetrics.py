@@ -11,7 +11,7 @@ class SimilarityMetrics(object):
     def textMatch(ehr, fhir, highestCompositeResult=True, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
 
         if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.textSimilarity, [], highestCompositeResult) * TranslationConstants.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
-            
+
             return True;
 
         else:
@@ -59,7 +59,7 @@ class SimilarityMetrics(object):
 
     # Similarity Metric C
     @staticmethod
-    def semanticSimilarity(ehrAttribute, fhirAttribute, synonymSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD, useDefinition=False, alsoUseMorphologicalSimilarity=False, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD, highestResult=True):
+    def semanticSimilarity(ehrAttribute, fhirAttribute, useDefinition=False, alsoUseMorphologicalSimilarity=False, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD, compositeSynonyms=False, highestResult=True ):
 
         # If these attributes would be associated via a text match instead, then don't also reevaluate their similarity via the text similarity below.
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;
@@ -113,11 +113,26 @@ class SimilarityMetrics(object):
 
             for synonym in synonyms:
 
-                textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, [synonymSimilarityThreshold], highestResult);
+                # Do we want the highest value across all components of the synonym, or just the synonym directy.
+                if ( compositeSynonyms ):
+
+                    textSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.textSimilarity, [], highestResult);
+
+                else:
+
+                    textSimilarity = SimilarityMetrics.textSimilarity(synonym, fhirAttribute);
+
 
                 # Synonyms may also be grammatical variants as opposed to just text matches.
                 if ( alsoUseMorphologicalSimilarity ):
-                    morphologicalSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.morphologicalSimilarity, [morphologicalSimilarityThreshold], highestResult);
+
+                    if ( compositeSynonyms ):
+
+                        morphologicalSimilarity = SimilarityMetrics.compositeStringSimilarity(Utilities.separationToCapital(synonym), fhirAttribute, SimilarityMetrics.morphologicalSimilarity, [morphologicalSimilarityThreshold], highestResult);
+
+                    else:
+
+                        morphologicalSimilarity = SimilarityMetrics.morphologicalSimilarity(synoynm, fhirAttribute);
 
                 else:
                     morphologicalSimilarity = 0;

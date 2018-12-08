@@ -316,7 +316,7 @@ class TranslationUtilities(object):
             return [element.tag for element in set(set().union(*Utilities.getXMLElements(patientXML, {}, children, parents, duplicates).values()))];
 
     @staticmethod
-    def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False):
+    def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False, contextualiseChildren=True):
 
         ehrClassChildren = {};
 
@@ -329,7 +329,7 @@ class TranslationUtilities(object):
                 for element in ehrClassExampleDepthsToChildren[0]:
 
                     # Contextualise those EHR children that do not give enough context on their own, because they are just generic children.
-                    if ( element.tag in TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA ):
+                    if ( contextualiseChildren and element.tag in TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA ):
 
                         # Work out how to present this new compound child (child + parent name), based on which separators are used by this EHR.
                         if ( TranslationConstants.SEPARATOR != "" ):
@@ -338,7 +338,7 @@ class TranslationUtilities(object):
                         else:
                             element.tag = element.tag + ehrClass[0].upper() + ehrClass[1:];
 
-                ehrClassChildren.setdefault(ehrClass, []).extend([element.tag]);
+                    ehrClassChildren.setdefault(ehrClass, []).extend([element.tag]);
 
             # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to find all possible examples of children that can be listed under that class.
             if ( not allEHRChildren ): break;

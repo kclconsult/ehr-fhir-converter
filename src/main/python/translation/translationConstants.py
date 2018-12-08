@@ -4,11 +4,14 @@ class TranslationConstants(object):
 
     MODELS_PATH = "models_subset";
 
-    EHR_PATH = "mmedica/mmedica";
+    EHR_PATH = "tpp/tpp";
+    # EHR_PATH = "mmedica/mmedica";
 
-    EHR_ENTRY_POINT = "session";
+    EHR_ENTRY_POINT = "Response";
+    # EHR_ENTRY_POINT = "session";
 
-    SEPARATOR = "_";
+    SEPARATOR = "";
+    # SEPARATOR = "_";
 
     #
 
@@ -45,7 +48,7 @@ class TranslationConstants(object):
 
     #
 
-    EXCLUDED_FHIR_CLASS_TYPES = { "Extension", "FHIR", "BackboneElement", "DomainResource" };
+    EXCLUDED_FHIR_CLASS_TYPES = { "Extension", "FHIR", "BackboneElement", "DomainResource", "Reference" };
 
     SELECTIVE_RECURSE = [];
     # SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
