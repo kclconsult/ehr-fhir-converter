@@ -136,10 +136,10 @@ class SimilarityMetrics(object):
     @staticmethod
     def compositeStringSimilarity(ehrClassField, fhirClassField, comparisonMethod, comparisonMethodArgs=[], highestResult=True):
 
-        # If ehrClass string is composite, compare each word with the FHIR target using all of the metrics, and
-        # then use chosen combination method to produce a value.
-        # For each word, add these values, and then divide by number of words to get an average match across all words (or max?).
+        # If ehrClass string is composite, compare each word with the FHIR target using all of the metrics, and then use chosen combination method to produce a value, e.g. for each word, add these values, and then divide by number of words to get an average match across all words or return highest.
         highestSimilarity = 0;
+        highestSimilarityWord = "";
+
         totalSimilarity = 0;
 
         ehrWords = Utilities.listFromCapitals(ehrClassField);
@@ -153,17 +153,21 @@ class SimilarityMetrics(object):
 
                 similarity = comparisonMethod(ehrWord, fhirWord, *comparisonMethodArgs);
 
-                if ( similarity > highestSimilarity ): highestSimilarity = similarity;
+                if ( similarity > highestSimilarity ):
+
+                    highestSimilarity = similarity;
+                    highestSimilarityWord = ehrWord;
 
                 if ( similarity > highestSimilarityForEHRWord ): highestSimilarityForEHRWord = similarity;
 
             totalSimilarity += highestSimilarityForEHRWord;
 
-        if ( highestResult ):
+        if ( highestResult and len(highestSimilarityWord) > TranslationConstants.LENGTH_TO_IGNORE_IN_COMPOSITE_HIGHEST ):
 
             return highestSimilarity;
 
         else:
+
             return totalSimilarity / len(ehrWords); #max(float(len(ehrWords)), float(len(fhirWords)));
 
     ######

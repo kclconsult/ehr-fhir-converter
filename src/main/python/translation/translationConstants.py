@@ -49,4 +49,6 @@ class TranslationConstants(object):
 
     TYPES_TO_REGEX = { "str": "[A-Za-z]*", "bool": "([Tt]rue|[Ff]alse)"}
 
+    LENGTH_TO_IGNORE_IN_COMPOSITE_HIGHEST = 2;
+
     # MAX_HOPS = ;
