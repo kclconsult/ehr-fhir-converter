@@ -9,9 +9,14 @@ from translation.similarityMetrics import SimilarityMetrics
 from translation.translationUtilities import TranslationUtilities
 from translation.matches import Matches;
 
-import models_subset;
+import models_subset.patient;
 
 class FHIRTranslation(object):
+
+    @staticmethod
+    def getPatient(id):
+
+        return ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + ( "-extract" if TranslationConstants.DEMO else "-full" ) + '.xml').find(TranslationConstants.EHR_ENTRY_POINT);
 
     @staticmethod
     def dataTypeCompatible(ehrChild, fhirChild, fhirClass):
@@ -54,14 +59,7 @@ class FHIRTranslation(object):
         return fhirClassesToChildren;
 
     @staticmethod
-    def getPatient(id):
-        #return TranslationUtilities.ehrClassToExamples(ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml').find("Response"));
-        return ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + '.xml').find("Response");
-
-    import models_subset.patient;
-
-    @staticmethod
-    def translatePatient(log=True):
+    def translatePatient():
 
          # Get patient record from EHR
         patientXML = FHIRTranslation.getPatient("4917111072");
@@ -96,11 +94,11 @@ class FHIRTranslation(object):
         classesExamined = 0;
         totalChildren = len(set(set().union(*ehrClassesToChildren.values())));
 
-        if (log): fhirClasses = [models_subset.patient.Patient];
+        if (TranslationConstants.DEMO): fhirClasses = [models_subset.patient.Patient];
 
         for fhirClass in fhirClasses:
 
-            if (log): print "FHIR class: " + str(fhirClass);
+            if (TranslationConstants.DEMO): print "FHIR class: " + str(fhirClass);
 
             placed = [];
             usedFHIRClassesForPlacement = set();
@@ -110,7 +108,7 @@ class FHIRTranslation(object):
 
                 for ehrChild in ehrClassesToChildren[ehrClass]:
 
-                    if (log): print "  EHR child: " + str(ehrChild);
+                    if (TranslationConstants.DEMO): print "  EHR child: " + str(ehrChild);
 
                     # Getting all potential placements allows us to select more than just the top match, should we want to, such as to handle the instance in which two EHR leaves map to the same FHIR leaf.
                     potentialPlacements = FHIRTranslation.recursivelyPlaceEHRchild(False, fhirClass, fhirClassesToChildren, fhirConnections, ehrClass, ehrChild, 0, [], []);

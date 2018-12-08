@@ -5,24 +5,6 @@ from translation.translationConstants import TranslationConstants;
 
 import unittest, models_subset
 
-import models_full.activitydefinition;
-import models_full.address;
-#import models.codesystem;
-import models_full.devicemetric;
-import models_full.claimresponse;
-import models_full.medication;
-import models_full.medicationdispense;
-import models_full.medicationadministration;
-import models_full.medicationrequest;
-import models_full.patient;
-import models_full.sequence;
-
-import models_subset.practitioner;
-import models_subset.patient;
-import models_subset.coding;
-import models_subset.encounter;
-import models_subset.codeableconcept;
-
 class TranslationUtilities(object):
 
     @staticmethod
@@ -222,7 +204,7 @@ class TranslationUtilities(object):
         # If we're adding pseudo child elements, we won't be able to derive a type for them (because they don't exist), so remove parent suffix.
         if ( addParentName ):
 
-            if ( re.match( "[a-zA-Z]+" + fhirClass.__name__ + "[a-zA-Z]*" , fhirChild ) ):
+            if ( re.match( "[a-zA-Z0-9]+" + fhirClass.__name__ + "[a-zA-Z0-9]*" , fhirChild ) ):
 
                 fhirChild = fhirChild[:fhirChild.index(fhirClass.__name__)];
 
@@ -240,9 +222,6 @@ class TranslationUtilities(object):
 
                 # If this isn't a type line, it's a resource reference line, and as the only resources permitted to act as children are effective leaf nodes, return string.
                 return "str";
-
-        print str(fhirClass) + " " + str(fhirChild);
-        sys.exit();
 
         return None;
 
@@ -347,7 +326,19 @@ class TranslationUtilities(object):
 
             if 0 in ehrClassExampleDepthsToChildren.keys():
 
-                ehrClassChildren.setdefault(ehrClass, []).extend([element.tag for element in ehrClassExampleDepthsToChildren[0]]);
+                for element in ehrClassExampleDepthsToChildren[0]:
+
+                    # Contextualise those EHR children that do not give enough context on their own, because they are just generic children.
+                    if ( element.tag in TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA ):
+
+                        # Work out how to present this new compound child (child + parent name), based on which separators are used by this EHR.
+                        if ( TranslationConstants.SEPARATOR != "" ):
+                            element.tag = element.tag + TranslationConstants.SEPARATOR + ehrClass;
+
+                        else:
+                            element.tag = element.tag + ehrClass[0].upper() + ehrClass[1:];
+
+                ehrClassChildren.setdefault(ehrClass, []).extend([element.tag]);
 
             # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to find all possible examples of children that can be listed under that class.
             if ( not allEHRChildren ): break;

@@ -11,6 +11,7 @@ class SimilarityMetrics(object):
     def textMatch(ehr, fhir, highestCompositeResult=True, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
 
         if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.textSimilarity, [], highestCompositeResult) * TranslationConstants.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
+            
             return True;
 
         else:

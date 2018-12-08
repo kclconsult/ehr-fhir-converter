@@ -130,6 +130,17 @@ class Utilities(object):
 
         return word
 
+    def splitOnCharacter(word):
+
+        # If no separator is supplied (e.g. for TPP), assume compound words are defined by capitals.
+        if TranslationUtilities.SEPARATOR == "": return listFromCapitals(word);
+
+        if ( TranslationUtilities.SEPARATOR not in word ):
+            return word;
+
+        else:
+            return word.spit( TranslationUtilities.SEPARATOR );
+
     @staticmethod
     def listFromCapitals(word):
 

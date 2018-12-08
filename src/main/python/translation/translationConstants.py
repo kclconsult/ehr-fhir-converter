@@ -1,17 +1,22 @@
 class TranslationConstants(object):
 
+    DEMO = True;
+
     MODELS_PATH = "models_subset";
 
-    EHR_PATH = "tpp/tpp-extract";
-    # EHR_PATH = "tpp/tpp-full";
+    EHR_PATH = "mmedica/mmedica";
+
+    EHR_ENTRY_POINT = "session";
+
+    SEPARATOR = "_";
 
     #
 
-    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=True; # Toggle
+    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=True;
 
-    METRICS_FIRST_PAST_THRESHOLD=True; # Toggle
+    METRICS_FIRST_PAST_THRESHOLD=True;
 
-    METRICS_HIGHEST_STRENGTH=False; # Toggle
+    METRICS_HIGHEST_STRENGTH=False;
 
     METRICS_COMBINED=False;
 
@@ -45,7 +50,7 @@ class TranslationConstants(object):
     SELECTIVE_RECURSE = [];
     # SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
 
-    FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA = ["value", "text"];
+    FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA = ["value", "text", "val"];
 
     TYPES_TO_REGEX = { "str": "[A-Za-z]*", "bool": "([Tt]rue|[Ff]alse)"}
 
