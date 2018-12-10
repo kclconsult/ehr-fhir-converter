@@ -1,6 +1,6 @@
 class TranslationConstants(object):
 
-    DEMO = True;
+    DEMO = False;
 
     MODELS_PATH = "models_subset";
 
@@ -15,15 +15,15 @@ class TranslationConstants(object):
 
     #
 
-    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=True;
+    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=True; # alpha
 
-    METRICS_FIRST_PAST_THRESHOLD=True;
+    METRICS_FIRST_PAST_THRESHOLD=False; # beta
 
-    METRICS_HIGHEST_STRENGTH=False;
+    METRICS_HIGHEST_STRENGTH=False; # gamma
 
-    METRICS_COMBINED=False;
+    METRICS_COMBINED=False; # delta
 
-    METRICS_AVERAGE=False;
+    METRICS_AVERAGE=True; # epsilon
 
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95; # tau
