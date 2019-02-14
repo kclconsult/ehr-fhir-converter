@@ -333,10 +333,10 @@ class TranslationUtilities(object):
 
                         # Work out how to present this new compound child (child + parent name), based on which separators are used by this EHR.
                         if ( TranslationConstants.SEPARATOR != "" ):
-                            element.tag = element.tag + TranslationConstants.SEPARATOR + ehrClass;
+                            element.tag = ehrClass + TranslationConstants.SEPARATOR + element.tag;
 
                         else:
-                            element.tag = element.tag + ehrClass[0].upper() + ehrClass[1:];
+                            element.tag = ehrClass[1:] + ehrClass[0].upper() + element.tag;
 
                     ehrClassChildren.setdefault(ehrClass, []).extend([element.tag]);
 
