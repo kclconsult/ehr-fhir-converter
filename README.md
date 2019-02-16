@@ -1,7 +1,5 @@
 # FHIR Parser
 
-[![Build Status](https://travis-ci.org/consult-kcl/nokia-health.svg?branch=nokia)](https://travis-ci.org/consult-kcl/nokia-health)
-
 Converting data from arbitrary EHR vendors to the FHIR standard.
 
 ## Getting Started
