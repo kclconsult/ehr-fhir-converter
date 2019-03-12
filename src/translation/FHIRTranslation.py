@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import str
+from builtins import object
 import json, collections, sys, operator, re
 from pprint import pprint
 from xml.etree import ElementTree;
@@ -17,7 +19,7 @@ class FHIRTranslation(object):
     @staticmethod
     def getPatient(id):
 
-        return ElementTree.parse('../../../resources/' + TranslationConstants.EHR_PATH + ( "-extract" if TranslationConstants.DEMO else "-full" ) + '.xml').find(TranslationConstants.EHR_ENTRY_POINT);
+        return ElementTree.parse('../data/' + TranslationConstants.EHR_PATH + ( "-extract" if TranslationConstants.DEMO else "-full" ) + '.xml').find(TranslationConstants.EHR_ENTRY_POINT);
 
     @staticmethod
     def dataTypeCompatible(ehrChild, fhirChild, fhirClass):
@@ -89,12 +91,12 @@ class FHIRTranslation(object):
 
         # Remove EHR classes and FHIR classes that do not have children (typically 'type' classes in FHIR).
         ehrClasses = set(ehrClassesToChildren.keys());
-        fhirClasses = fhirClassesToChildren.keys();
+        fhirClasses = list(fhirClassesToChildren.keys());
 
         candidateEntryPoints = [];
         classesExamined = 0;
 
-        totalChildren = len(set(set().union(*ehrClassesToChildren.values())));
+        totalChildren = len(set(set().union(*list(ehrClassesToChildren.values()))));
 
         if (TranslationConstants.DEMO): fhirClasses = [models_subset.patient.Patient];
 
@@ -174,7 +176,7 @@ class FHIRTranslation(object):
 
                     potentialPlacements.append((fhirChild[0], fhirClass, matchStrength, hops));
 
-        if ( fhirClass not in fhirConnections.keys() or ( hasattr(TranslationConstants, 'MAX_HOPS') and hops >= TranslationConstants.MAX_HOPS  ) ): return None;
+        if ( fhirClass not in list(fhirConnections.keys()) or ( hasattr(TranslationConstants, 'MAX_HOPS') and hops >= TranslationConstants.MAX_HOPS  ) ): return None;
 
         for connectedResource in fhirConnections[fhirClass]:
 

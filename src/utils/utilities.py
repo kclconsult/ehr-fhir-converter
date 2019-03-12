@@ -1,4 +1,7 @@
 from __future__ import print_function
+from builtins import str
+from past.builtins import basestring
+from builtins import object
 import socket, sys, time, uuid, json, inspect, collections
 
 from xml.sax.saxutils import escape
@@ -21,7 +24,7 @@ class Utilities(object):
     @staticmethod
     def dictKeyFromValue(dictionary, searchValue):
 
-        for key, value in dictionary.iteritems(): # items() in Python 3+
+        for key, value in list(dictionary.items()): # items() in Python 3+
             if value == searchValue:
                 return key;
 
@@ -49,7 +52,7 @@ class Utilities(object):
 
         superDictionary = collections.defaultdict(set)
         for dictionary in dictionaries:
-            for key, value in dictionary.iteritems(): # items() in Python 3+
+            for key, value in list(dictionary.items()): # items() in Python 3+
                 superDictionary[key].update(value)
 
         return superDictionary;
@@ -86,17 +89,17 @@ class Utilities(object):
     def getXMLElements(root, depthToElement={}, children=True, parents=True, duplicates=True, recurse=True, attributes=False, depth=0):
 
         if (attributes):
-            for attributeKey in root.attrib.keys():
+            for attributeKey in list(root.attrib.keys()):
                 root.append(Element(attributeKey));
 
         for elem in root.getchildren():
 
             if children: # if is child
-                if len(elem.getchildren()) == 0 and len(elem.attrib.keys()) == 0: #TODO: Make elements optional
+                if len(elem.getchildren()) == 0 and len(list(elem.attrib.keys())) == 0: #TODO: Make elements optional
                     depthToElement.setdefault(depth, []).append(elem);
 
             if parents: # if is parent
-                if len(elem.getchildren()) > 0 or len(elem.attrib.keys()): #TODO: Make elements optional
+                if len(elem.getchildren()) > 0 or len(list(elem.attrib.keys())): #TODO: Make elements optional
                     depthToElement.setdefault(depth, []).append(elem);
 
             if ( recurse ):
@@ -194,7 +197,7 @@ class Utilities(object):
 
         if isinstance(data, dict):
 
-            for k, v in data.items():
+            for k, v in list(data.items()):
 
                 if parents != None and len(parents) > 0:
                     k = k + "_" + parents
@@ -221,7 +224,7 @@ class Utilities(object):
 
         if isinstance(data, dict):
 
-            for k, v in data.items():
+            for k, v in list(data.items()):
 
                 if isinstance(v, basestring):
                     print(k)
@@ -293,3 +296,23 @@ class Utilities(object):
         finally:
 
             sock.close()
+
+    def cmpToKey(mycmp):
+
+        'Convert a cmp= function into a key= function'
+        class K(object):
+            def __init__(self, obj, *args):
+                self.obj = obj
+            def __lt__(self, other):
+                return mycmp(self.obj, other.obj) < 0
+            def __gt__(self, other):
+                return mycmp(self.obj, other.obj) > 0
+            def __eq__(self, other):
+                return mycmp(self.obj, other.obj) == 0
+            def __le__(self, other):
+                return mycmp(self.obj, other.obj) <= 0
+            def __ge__(self, other):
+                return mycmp(self.obj, other.obj) >= 0
+            def __ne__(self, other):
+                return mycmp(self.obj, other.obj) != 0
+        return K

@@ -1,3 +1,6 @@
+from builtins import str
+from builtins import range
+from builtins import object
 import pkgutil, importlib, pyclbr, inspect, sys, operator, re
 
 from utils.utilities import Utilities;
@@ -17,8 +20,12 @@ class TranslationUtilities(object):
             # Don't use test modules as a potential match.
             if "_tests" in fhirModule: continue;
 
+            if (sys.version_info > (3, 0)):
+                classes = sorted(list(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys()), key=Utilities.cmpToKey(Utilities.classLengthSort))
+            else:
+                classes = sorted(list(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys()), cmp=Utilities.classLengthSort)
             # Sorts the classes in order to always have the base class (non-backbone) first, e.g. Encounter first over something like EncounterLocation. Based on the assumption that shortest class names are the base element class.
-            for fhirClass in sorted(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys(), cmp=Utilities.classLengthSort):
+            for fhirClass in classes:
 
                 if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in fhirClass]): continue
 
@@ -84,7 +91,7 @@ class TranslationUtilities(object):
         # Don't examine classes that don't use the 'elementsProperties' approach to list attributes.
         if ( not callable(getattr(root, "elementProperties", None)) ): return [];
 
-        if ( root not in classesToChildren.keys() ): classesToChildren[root] = set();
+        if ( root not in list(classesToChildren.keys()) ): classesToChildren[root] = set();
 
         # Attributes of this class and parents.
         attributes = root.elementProperties(root());
@@ -214,7 +221,7 @@ class TranslationUtilities(object):
 
             if ( "self." + fhirChild in sourceLine ):
 
-                for type in TranslationConstants.TYPES_TO_REGEX.keys():
+                for type in list(TranslationConstants.TYPES_TO_REGEX.keys()):
 
                     if ( type in sourceLines[sourceLines.index(sourceLine) + 2].strip() ):
 
@@ -285,7 +292,7 @@ class TranslationUtilities(object):
                     if ( len(ehrClassExample.getchildren()) == 0  ): continue;
 
                     # If we don't have a record of this instance of an EHR class name (e.g. one instance of a ClinicalCode element, when lots of ClinicalCode elements exist in the document.), then it is either the first example of this EHR class name (+ children) combination that we have extracted, or it is a new EHR class name + children combination, in which case it should be recorded with a new incremented numerical suffix. As such, childrenToNewTagName holds a record of all unique EHRname:children combinations.
-                    if ( str(sorted([element.tag for element in ehrClassExample.getchildren()])) not in childrenToNewTagName.keys() ):
+                    if ( str(sorted([element.tag for element in ehrClassExample.getchildren()])) not in list(childrenToNewTagName.keys()) ):
 
                         # Incrementally name.
                         if (len(childrenToNewTagName) > 0): ehrClassExample.tag = ehrClassExample.tag + str(len(childrenToNewTagName));
@@ -313,7 +320,7 @@ class TranslationUtilities(object):
         else:
 
             # Combines all values in dictionary of EHR depths.
-            return [element.tag for element in set(set().union(*Utilities.getXMLElements(patientXML, {}, children, parents, duplicates).values()))];
+            return [element.tag for element in set(set().union(*list(Utilities.getXMLElements(patientXML, {}, children, parents, duplicates).values())))];
 
     @staticmethod
     def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False, contextualiseChildren=True):
@@ -324,7 +331,7 @@ class TranslationUtilities(object):
 
             ehrClassExampleDepthsToChildren = Utilities.getXMLElements(ehrClassExample, {}, children, parents, False, True, True);
 
-            if 0 in ehrClassExampleDepthsToChildren.keys():
+            if 0 in list(ehrClassExampleDepthsToChildren.keys()):
 
                 for element in ehrClassExampleDepthsToChildren[0]:
 

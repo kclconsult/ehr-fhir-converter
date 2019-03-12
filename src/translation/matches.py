@@ -1,3 +1,4 @@
+from builtins import object
 import sys
 
 from translation.similarityMetrics import SimilarityMetrics

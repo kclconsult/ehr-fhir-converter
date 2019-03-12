@@ -1,5 +1,6 @@
 from __future__ import print_function
 from __future__ import absolute_import
+from builtins import object
 import socket, sys, time, xml.dom.minidom
 from .APIConstants import APIConstants
 from .APIVariables import APIVariables

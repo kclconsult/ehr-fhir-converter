@@ -1,3 +1,6 @@
+from __future__ import division
+from builtins import object
+from past.utils import old_div
 from fuzzywuzzy import fuzz
 from nltk.corpus import wordnet
 from nltk.stem.porter import PorterStemmer
@@ -184,6 +187,6 @@ class SimilarityMetrics(object):
 
         else:
 
-            return totalSimilarity / len(ehrWords); #max(float(len(ehrWords)), float(len(fhirWords)));
+            return old_div(totalSimilarity, len(ehrWords)); #max(float(len(ehrWords)), float(len(fhirWords)));
 
     ######
