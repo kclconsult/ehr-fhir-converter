@@ -1,3 +1,4 @@
+from __future__ import print_function
 import socket, sys, time, uuid, json, inspect, collections
 
 from xml.sax.saxutils import escape
@@ -223,7 +224,7 @@ class Utilities(object):
             for k, v in data.items():
 
                 if isinstance(v, basestring):
-                    print k
+                    print(k)
 
                 else:
                     Utilities.printJSONValues(v)
@@ -236,7 +237,7 @@ class Utilities(object):
                     Utilities.printJSONValues(v)
 
         else:
-            print data;
+            print(data);
 
     @staticmethod
     def ehrRequest(data):
@@ -257,7 +258,7 @@ class Utilities(object):
             data + \
             '</ClientIntegrationRequest>'
 
-            print request;
+            print(request);
             sock.sendall(request.encode('utf-8'))
 
             sock.settimeout(20);

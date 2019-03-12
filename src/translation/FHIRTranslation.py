@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json, collections, sys, operator, re
 from pprint import pprint
 from xml.etree import ElementTree;
@@ -99,7 +100,7 @@ class FHIRTranslation(object):
 
         for fhirClass in fhirClasses:
 
-            if (TranslationConstants.DEMO): print "FHIR class: " + str(fhirClass);
+            if (TranslationConstants.DEMO): print("FHIR class: " + str(fhirClass));
 
             placed = [];
             usedFHIRClassesForPlacement = set();
@@ -110,7 +111,7 @@ class FHIRTranslation(object):
 
                 for ehrChild in ehrClassesToChildren[ehrClass]:
 
-                    if (TranslationConstants.DEMO): print "  EHR child: " + str(ehrChild);
+                    if (TranslationConstants.DEMO): print("  EHR child: " + str(ehrChild));
 
                     # Getting all potential placements allows us to select more than just the top match, should we want to, such as to handle the instance in which two EHR leaves map to the same FHIR leaf.
                     potentialPlacements = FHIRTranslation.recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrClass, ehrChild, 0, [], []);
@@ -136,10 +137,10 @@ class FHIRTranslation(object):
 
             classesExamined += 1;
 
-            print str((classesExamined / float(len(fhirClasses))) * 100) + "%";
+            print(str((classesExamined / float(len(fhirClasses))) * 100) + "%");
 
         for entry in sorted(candidateEntryPoints, key = operator.itemgetter(1, 2)):
-            print str(entry) + "\n";
+            print(str(entry) + "\n");
 
     @staticmethod
     def recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrParent, ehrChild, hops, visited, potentialPlacements, alsoParentStrength=False, alsoMatchParent=False):

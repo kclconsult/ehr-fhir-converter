@@ -1,11 +1,11 @@
 ### Project specific ###
 
-src/main/python/fhir-parser/
-src/main/python/models/
-src/main/python/models_full/
-src/main/python/models_subset/
-resources/
-library/
+src/fhir-parser/
+src/client-py/
+src/models/
+src/models_full/
+src/models_subset/
+data/
 doc/
 
 # Created by https://www.gitignore.io/api/macos,pydev,python,eclipse
@@ -63,10 +63,10 @@ local.properties
 .worksheet
 
 ### Eclipse Patch ###
-# Eclipse Core		
+# Eclipse Core
 .project
 
-# JDT-specific (Eclipse Java Development Tools)		
+# JDT-specific (Eclipse Java Development Tools)
 .classpath
 
 ### macOS ###
