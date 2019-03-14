@@ -1,0 +1,63 @@
+{
+  "resourceType": "Practitioner",
+  "id": "2",
+  "text": {
+    "status": "",
+    "div": ""
+  },
+  "identifier": [
+    {
+      "system": "",
+      "value": ""
+    }
+  ],
+  "active": true,
+  "name": [
+    {
+      "family": "Careful",
+      "given": [
+        "Adam"
+      ],
+      "prefix": [
+        "Dr"
+      ]
+    }
+  ],
+  "address": [
+    {
+      "use": "",
+      "line": [
+        ""
+      ],
+      "city": "",
+      "state": "",
+      "postalCode": ""
+    }
+  ],
+  "qualification": [
+    {
+      "identifier": [
+        {
+          "system": "",
+          "value": ""
+        }
+      ],
+      "code": {
+        "coding": [
+          {
+            "system": "",
+            "code": "",
+            "display": ""
+          }
+        ],
+        "text": ""
+      },
+      "period": {
+        "start": ""
+      },
+      "issuer": {
+        "display": ""
+      }
+    }
+  ]
+}

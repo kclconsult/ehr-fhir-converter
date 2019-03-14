@@ -1,0 +1,110 @@
+{
+  "resourceType": "Condition",
+  "id": "c2",
+  "text": {
+    "status": "",
+    "div": ""
+  },
+  "identifier": [
+    {
+      "value": ""
+    }
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "system": "",
+        "code": ""
+      }
+    ]
+  },
+  "verificationStatus": {
+    "coding": [
+      {
+        "system": "",
+        "code": ""
+      }
+    ]
+  },
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "",
+          "code": "",
+          "display": ""
+        },
+        {
+          "system": "",
+          "code": ""
+        }
+      ]
+    }
+  ],
+  "severity": {
+    "coding": [
+      {
+        "system": "",
+        "code": "",
+        "display": ""
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "system": "http://snomed.info/sct",
+        "code": "396275006",
+        "display": "Osteoarthritis"
+      }
+    ]
+  },
+  "bodySite": [
+    {
+      "coding": [
+        {
+          "system": "",
+          "code": "",
+          "display": ""
+        }
+      ]
+    }
+  ],
+  "subject": {
+    "reference": "Patient/3",
+    "display": ""
+  },
+  "encounter": {
+    "reference": ""
+  },
+  "onsetDateTime": "",
+  "abatementString": "",
+  "recordedDate": "",
+  "recorder": {
+    "reference": "Practitioner/2"
+  },
+  "asserter": {
+    "reference": "Practitioner/2"
+  },
+  "evidence": [
+    {
+      "code": [
+        {
+          "coding": [
+            {
+              "system": "",
+              "code": "",
+              "display": ""
+            }
+          ]
+        }
+      ],
+      "detail": [
+        {
+          "reference": "",
+          "display": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "resourceType": "Medication",
+  "id": "m1",
+  "text": {
+    "status": "",
+    "div": ""
+  },
+  "code": {
+    "coding": [
+      {
+        "system": "http://snomed.info/sct",
+        "code": "91667005",
+        "display": "Thiazide"
+      }
+    ]
+  },
+  "status": "",
+  "isBrand": true,
+  "isOverTheCounter": false,
+  "manufacturer": {
+    "reference": ""
+  },
+  "form": {
+    "coding": [
+      {
+        "system": "",
+        "code": "",
+        "display": ""
+      }
+    ]
+  },
+  "ingredient": [
+    {
+      "itemCodeableConcept": {
+        "coding": [
+          {
+            "system": "",
+            "code": "",
+            "display": ""
+          }
+        ]
+      },
+      "isActive": true,
+      "amount": {
+        "numerator": {
+          "value": 0,
+          "system": "",
+          "code": ""
+        },
+        "denominator": {
+          "value": 0,
+          "system": "",
+          "code": ""
+        }
+      }
+    }
+  ],
+  "package": {
+    "container": {
+      "coding": [
+        {
+          "system": "",
+          "code": "",
+          "display": ""
+        }
+      ]
+    },
+    "content": [
+      {
+        "itemCodeableConcept": {
+          "coding": [
+            {
+              "system": "",
+              "code": "",
+              "display": ""
+            }
+          ]
+        },
+        "amount": {
+          "value": 0,
+          "system": "",
+          "code": ""
+        }
+      }
+    ],
+    "batch": [
+      {
+        "lotNumber": "",
+        "expirationDate": ""
+      }
+    ]
+  },
+  "image": [
+    {
+      "contentType": "",
+      "url": "",
+      "title": ""
+    }
+  ]
+}

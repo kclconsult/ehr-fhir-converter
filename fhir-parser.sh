@@ -1,6 +1,6 @@
-cp src/main/python/mappings.py src/main/python/fhir-parser/
-cp src/main/python/settings.py src/main/python/fhir-parser/
-cd src/main/python/fhir-parser/
+cp src/mappings.py src/fhir-parser/
+cp src/settings.py src/fhir-parser/
+cd src/fhir-parser/
 touch Default/__init__.py
 pip install -r requirements.txt
 python generate.py

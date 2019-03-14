@@ -5,7 +5,7 @@ src/client-py/
 src/models/
 src/models_full/
 src/models_subset/
-data/
+example-ehr-data/
 doc/
 
 # Created by https://www.gitignore.io/api/macos,pydev,python,eclipse

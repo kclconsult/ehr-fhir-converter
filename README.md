@@ -82,6 +82,9 @@ cd ../
 mv models/ models_full/
 touch models_full/__init__.py
 ```
+
+Automated through `fhir-parser.sh`.
+
 ##### (Option 2) Download FHIR classes
 
 Clone the FHIR client repository.
@@ -103,7 +106,7 @@ Run setup tools
 
 ```
 cd ../../../
-python setup.py test sdist bdist_wheel
+python setup.py sdist bdist_wheel
 ```
 
 ## Usage
@@ -116,13 +119,11 @@ python setup.py install
 
 The app runs by default on port 8080.
 
-### Authentication
-
-
-
 ## Running the tests
 
-Tests are run as part of PythonBuilder.
+```
+python setup.py test
+```
 
 ## Deployment
 

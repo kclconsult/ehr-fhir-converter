@@ -1,0 +1,61 @@
+{
+  "resourceType": "MedicationDispense",
+  "id": "d0",
+  "text": {
+    "status": "",
+    "div": ""
+  },
+  "context": {
+    "reference": ""
+  },
+  "status": "completed",
+  "medicationReference": {
+    "reference": "Medication/6"
+  },
+  "subject": {
+    "reference": "Patient/3",
+    "display": ""
+  },
+  "performer": [
+    {
+      "actor": {
+        "reference": "Practitioner/2"
+      },
+      "onBehalfOf": {
+        "reference": "Organization/1"
+      }
+    }
+  ],
+  "authorizingPrescription": [
+    {
+      "reference": ""
+    }
+  ],
+  "dosageInstruction": [
+    {
+      "sequence": 0,
+      "timing": {
+        "repeat": {
+          "frequency": 0,
+          "period": 0,
+          "periodUnit": ""
+        }
+      },
+      "route": {
+        "coding": [
+          {
+            "system": "",
+            "code": "",
+            "display": ""
+          }
+        ]
+      },
+      "doseQuantity": {
+        "value": 0,
+        "unit": "",
+        "system": "",
+        "code": ""
+      }
+    }
+  ]
+}

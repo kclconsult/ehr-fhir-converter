@@ -1,4 +1,5 @@
 from builtins import object
+
 class TranslationConstants(object):
 
     DEMO = False;

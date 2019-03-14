@@ -1,0 +1,110 @@
+{
+  "resourceType": "Condition",
+  "id": "[id]",
+  "text": {
+    "status": "",
+    "div": ""
+  },
+  "identifier": [
+    {
+      "value": ""
+    }
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "system": "",
+        "code": ""
+      }
+    ]
+  },
+  "verificationStatus": {
+    "coding": [
+      {
+        "system": "",
+        "code": ""
+      }
+    ]
+  },
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "",
+          "code": "",
+          "display": ""
+        },
+        {
+          "system": "",
+          "code": ""
+        }
+      ]
+    }
+  ],
+  "severity": {
+    "coding": [
+      {
+        "system": "",
+        "code": "",
+        "display": ""
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "system": "[codeSystem]",
+        "code": "[code]",
+        "display": "[display]"
+      }
+    ]
+  },
+  "bodySite": [
+    {
+      "coding": [
+        {
+          "system": "",
+          "code": "",
+          "display": ""
+        }
+      ]
+    }
+  ],
+  "subject": {
+    "reference": "Patient/[subjectReference]",
+    "display": ""
+  },
+  "encounter": {
+    "reference": ""
+  },
+  "onsetDateTime": "",
+  "abatementString": "",
+  "recordedDate": "",
+  "recorder": {
+    "reference": "Practitioner/[practitionerReference]"
+  },
+  "asserter": {
+    "reference": "Practitioner/[practitionerReference]"
+  },
+  "evidence": [
+    {
+      "code": [
+        {
+          "coding": [
+            {
+              "system": "",
+              "code": "",
+              "display": ""
+            }
+          ]
+        }
+      ],
+      "detail": [
+        {
+          "reference": "",
+          "display": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,24 +1,20 @@
-import sys
+import sys, requests, uvicorn, uuid
 
-from translation.FHIRTranslation import FHIRTranslation
-from translation.matches import Matches
-from translation.translationConstants import TranslationConstants
-from translation.similarityMetrics import SimilarityMetrics
 from utils.utilities import Utilities
+from FHIR.utilities import Utilities
+from FHIR.create import create
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-import uvicorn
+from starlette.routing import Mount, Route, Router
 
+router = Router([Mount("/create", app=create)])
 app = Starlette(debug=True)
+app.mount("", router)
 
-@app.route("/translate")
-def translate(request):
+@app.route("/simulateTranslatePatient")
+def simulateTranslatePatient(request):
     FHIRTranslation.translatePatient();
 
-@app.route('/')
-async def homepage(request):
-    return JSONResponse({'hello': 'world'})
-
 if __name__ == '__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+    uvicorn.run(app, host='0.0.0.0', port=3004)
