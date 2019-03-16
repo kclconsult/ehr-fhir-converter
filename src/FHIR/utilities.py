@@ -2,7 +2,7 @@ from __future__ import print_function
 from builtins import str
 from past.builtins import basestring
 from builtins import object
-import json, requests
+import json, requests, configparser
 
 class Utilities(object):
 
@@ -30,6 +30,9 @@ class Utilities(object):
   @staticmethod
   def createFHIRResource(resource, data):
 
+    config = configparser.ConfigParser();
+    config.read('config/config.ini');
+
     data = json.loads(data);
 
     with open("FHIR/fhir-json/templates/" + resource + ".json") as templateFile:
@@ -39,4 +42,5 @@ class Utilities(object):
       for key, value in data.items():
         template = template.replace("[" + key + "]", value);
 
-      return Utilities.callFHIRServer("http://localhost:8080/fhir/" + resource + "/" + data["id"] + "?_format=json", "PUT", template);
+      URL = config['FHIR_SERVER']['URL'] + config['FHIR_SERVER']['ENDPOINT'] + resource + "/" + data["id"] + "?_format=json";
+      return Utilities.callFHIRServer(URL, "PUT", template);

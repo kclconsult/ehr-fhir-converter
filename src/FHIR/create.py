@@ -14,7 +14,7 @@ create = Starlette()
 
 @apiParam {String} id Unique ID of this organization.
 """
-@create.route("/organization")
+@create.route("/Organization")
 class Organization(HTTPEndpoint):
     async def post(self, request):
         return Response("", Utilities.createFHIRResource("Organization", await request.body()), {}, "");
@@ -28,7 +28,7 @@ class Organization(HTTPEndpoint):
 @apiParam {String} familyName  Practitioner family name.
 @apiParam {String} givenName Practitioner given name.
 """
-@create.route("/practitioner")
+@create.route("/Practitioner")
 class Practitioner(HTTPEndpoint):
     async def post(self, request):
         return Response("", Utilities.createFHIRResource("Practitioner", await request.body()), {}, "");
@@ -47,7 +47,7 @@ class Practitioner(HTTPEndpoint):
 @apiParam {String} ethnicityCode Code used for patient ethnicity.
 @apiParam {String} ethnicityDisplay Text associated with patient ethnicity.
 """
-@create.route("/patient")
+@create.route("/Patient")
 class Patient(HTTPEndpoint):
     async def post(self, request):
         return Response("", Utilities.createFHIRResource("Patient", await request.body()), {}, "");
@@ -64,7 +64,7 @@ class Patient(HTTPEndpoint):
 @apiParam {String} subjectReference  The ID of the patient to whom this condition pertains.
 @apiParam {String} practitionerReference  The ID of the practitioner who diagnosed this condition.
 """
-@create.route("/condition")
+@create.route("/Condition")
 class Condition(HTTPEndpoint):
     async def post(self, request):
         return Response("", Utilities.createFHIRResource("Condition", await request.body()), {}, "");
@@ -79,7 +79,7 @@ class Condition(HTTPEndpoint):
 @apiParam {String} code  Code used for this medication.
 @apiParam {String} display  Text associated with this medication.
 """
-@create.route("/medication")
+@create.route("/Medication")
 class Medication(HTTPEndpoint):
     async def post(self, request):
         return Response("", Utilities.createFHIRResource("Medication", await request.body()), {}, "");
@@ -95,13 +95,13 @@ class Medication(HTTPEndpoint):
 @apiParam {String} practitionerReference The ID of the practitioner that prescribed this medication.
 @apiParam {String} organizationReference The ID of the organization the practitioner is associated with.
 """
-@create.route("/dispense")
+@create.route("/MedicationDispense")
 class Dispense(HTTPEndpoint):
     async def post(self, request):
         print(os.getcwd());
         return Response("", Utilities.createFHIRResource("MedicationDispense", await request.body()), {}, "");
 
-@create.route("/subscription")
+@create.route("/Subscription")
 class Subscription(HTTPEndpoint):
     async def post(self, request):
         print(os.getcwd());
