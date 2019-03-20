@@ -16,6 +16,7 @@ class Utilities(object):
        "Content-Type": "application/fhir+json; charset=UTF-8"
       },
       url=url,
+      verify=False,
       #rejectUnauthorized: false,
       #requestCert: true,
       data=body

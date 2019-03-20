@@ -17,7 +17,7 @@
   "criteria": "Observation?_format=json",
   "channel": {
     "type": "rest-hook",
-    "endpoint": "https://martinchapman.co.uk",
+    "endpoint": "[URL]",
     "payload": "application/json"
   }
 }

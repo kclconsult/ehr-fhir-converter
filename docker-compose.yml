@@ -6,9 +6,9 @@ services:
     build:
       context: .
     command: ["./wait-for-it/wait-for-it.sh", "rabbit:15672", "--", "python", "receive.py"]
-    links:
-      - rabbit
     depends_on:
+      - rabbit
+    links:
       - rabbit
 
   rabbit:
@@ -24,4 +24,4 @@ volumes:
 
 networks:
   default:
-    name: ehr_network
+    name: network
