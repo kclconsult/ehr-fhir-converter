@@ -1,4 +1,4 @@
-import pika, configparser, json
+import pika, configparser, json, os
 from FHIR.utilities import Utilities;
 
 config = configparser.ConfigParser();

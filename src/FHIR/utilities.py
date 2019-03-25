@@ -2,7 +2,7 @@ from __future__ import print_function
 from builtins import str
 from past.builtins import basestring
 from builtins import object
-import json, requests, configparser
+import json, requests, configparser, os
 
 class Utilities(object):
 
@@ -43,5 +43,5 @@ class Utilities(object):
       for key, value in data.items():
         template = template.replace("[" + key + "]", value);
 
-      URL = config['FHIR_SERVER']['URL'] + config['FHIR_SERVER']['ENDPOINT'] + resource + "/" + data["id"] + "?_format=json";
+      URL = config.get('FHIR_SERVER', 'URL', vars=os.environ) + config['FHIR_SERVER']['ENDPOINT'] + resource + "/" + data["id"] + "?_format=json";
       return Utilities.callFHIRServer(URL, "PUT", template);

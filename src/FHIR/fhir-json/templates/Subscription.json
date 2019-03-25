@@ -1,6 +1,6 @@
 {
   "resourceType": "Subscription",
-  "id": "hapi-message-passer-subscription",
+  "id": "[id]",
   "text": {
     "status": "generated",
     "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">abc</div>"
@@ -14,7 +14,7 @@
   ],
   "end": "2021-01-01T00:00:00Z",
   "reason": "reason",
-  "criteria": "Observation?_format=json",
+  "criteria": "[criteria]",
   "channel": {
     "type": "rest-hook",
     "endpoint": "[URL]",

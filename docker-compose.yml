@@ -3,19 +3,17 @@ version: "3.7"
 services:
 
   webapp-queue:
+    command: ["./wait-for-it.sh", "--timeout=0", "ehr-fhir-mapper_rabbit_1:15672", "--", "python", "receive.py"]
     build:
       context: .
-    command: ["./wait-for-it/wait-for-it.sh", "rabbit:15672", "--", "python", "receive.py"]
     depends_on:
       - rabbit
-    links:
-      - rabbit
+    environment:
+      - FHIR_SERVER_ADDRESS=192.168.99.101
 
   rabbit:
     image: "rabbitmq:3-management"
     hostname: "rabbit"
-    ports:
-      - "15672:15672"
     volumes:
       - ehr_data_volume:/var/lib/rabbitmq
 
@@ -24,4 +22,4 @@ volumes:
 
 networks:
   default:
-    name: network
+    name: ehr_network
