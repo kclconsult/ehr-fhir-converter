@@ -9,7 +9,11 @@ services:
     depends_on:
       - rabbit
     environment:
-      - FHIR_SERVER_ADDRESS=192.168.99.101
+      - FHIR_SERVER_ADDRESS=romanova
+      - REQUESTS_CA_BUNDLE=consult.crt
+    extra_hosts:
+      # If fhir server at IP rather than known host, name on fhir server's certificate : fhir server IP.
+      romanova: 192.168.99.101
 
   rabbit:
     image: "rabbitmq:3-management"
