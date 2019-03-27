@@ -8,7 +8,7 @@ def init():
         try:
 
             config = configparser.ConfigParser();
-            config.read('config/config.ini');
+            config.read('config/config.prod.ini');
             connection = pika.BlockingConnection(pika.ConnectionParameters(config['MESSAGE_QUEUE']['HOST']));
             channel = connection.channel();
             channel.basic_qos(0, 1);

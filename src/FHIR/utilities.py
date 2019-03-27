@@ -29,7 +29,16 @@ class Utilities(object):
   def createFHIRResource(resource, data):
 
     config = configparser.ConfigParser();
-    config.read('config/config.ini');
+
+    if 'FHIR_SERVER_ADDRESS' in os.environ:
+
+      config.read('config/config.prod.ini');
+      FHIR_HOST = config.get('FHIR_SERVER', 'URL', vars=os.environ);
+
+    else:
+
+      config.read('config/config.dev.ini');
+      FHIR_HOST = config.get('FHIR_SERVER', 'URL');
 
     data = json.loads(data);
 
@@ -40,5 +49,6 @@ class Utilities(object):
       for key, value in data.items():
         template = template.replace("[" + key + "]", value);
 
-      URL = config.get('FHIR_SERVER', 'URL', vars=os.environ) + config['FHIR_SERVER']['ENDPOINT'] + resource + "/" + data["id"] + "?_format=json";
+      URL = FHIR_HOST + config['FHIR_SERVER']['ENDPOINT'] + resource + "/" + data["id"] + "?_format=json";
+
       return Utilities.callFHIRServer(URL, "PUT", template);
