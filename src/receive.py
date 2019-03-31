@@ -19,8 +19,12 @@ def init():
                 body = body.decode("utf-8");
                 jsonBody = json.loads(body);
 
-                if ( Utilities.createFHIRResource(jsonBody['resource'], body) == 200 ):
-                    channel.basic_ack(method.delivery_tag)
+                response = Utilities.createFHIRResource(jsonBody['resource'], body);
+
+                if ( response == 200 or ( response == 400 and ( jsonBody['resource'] == "Subscription" ) ) ):
+                    channel.basic_ack(method.delivery_tag);
+                else:
+                    print("Error adding FHIR resource: " + str(response));
 
             channel.basic_consume(callback, queue=config['MESSAGE_QUEUE']['NAME']);
 
