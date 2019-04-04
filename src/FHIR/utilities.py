@@ -2,19 +2,20 @@ from __future__ import print_function
 from builtins import str
 from past.builtins import basestring
 from builtins import object
-import json, requests, configparser, os
+from requests.auth import HTTPBasicAuth
+import json, requests, configparser, os, base64
 
 class Utilities(object):
 
   @staticmethod
-  def callFHIRServer(url, method, body):
+  def callFHIRServer(url, method, body, username, password):
 
     request = requests.request(
       method,
       headers = {
-       #"Authorization": "Basic " + new Buffer(config.FHIR_USERNAME + ":" + config.FHIR_PASSWORD).toString("base64"),
        "Content-Type": "application/fhir+json; charset=UTF-8"
       },
+      auth=HTTPBasicAuth(username, password),
       url=url,
       data=body
     );
@@ -34,11 +35,15 @@ class Utilities(object):
 
       config.read('config/config.prod.ini');
       FHIR_HOST = config.get('FHIR_SERVER', 'URL', vars=os.environ);
+      FHIR_USERNAME = config.get('FHIR_SERVER', 'USERNAME', vars=os.environ);
+      FHIR_PASSWORD = config.get('FHIR_SERVER', 'PASSWORD', vars=os.environ);
 
     else:
 
       config.read('config/config.dev.ini');
       FHIR_HOST = config.get('FHIR_SERVER', 'URL');
+      FHIR_USERNAME = config.get('FHIR_SERVER', 'USERNAME');
+      FHIR_PASSWORD = config.get('FHIR_SERVER', 'PASSWORD');
 
     data = json.loads(data);
 
@@ -51,4 +56,4 @@ class Utilities(object):
 
       URL = FHIR_HOST + config['FHIR_SERVER']['ENDPOINT'] + resource + "/" + data["id"] + "?_format=json";
 
-      return Utilities.callFHIRServer(URL, "PUT", template);
+      return Utilities.callFHIRServer(URL, "PUT", template, FHIR_USERNAME, FHIR_PASSWORD);

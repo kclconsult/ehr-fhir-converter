@@ -9,13 +9,13 @@ services:
     depends_on:
       - rabbit
     environment:
-      - FHIR_SERVER_ADDRESS=romanova
+      - FHIR_SERVER_ADDRESS=romanova:8080
       - FHIR_SERVER_USERNAME=consult
       - FHIR_SERVER_PASSWORD=consultproject2017
       - REQUESTS_CA_BUNDLE=consult.crt
     extra_hosts:
-      # If fhir server at IP rather than known host, name on fhir server's certificate : fhir server IP.
-      romanova: 192.168.99.101
+      # Gateway of fhir_network. Acts as entry point into network like a docker machine hostname.
+      romanova: 172.20.0.1
     tty: true
 
   rabbit:
@@ -30,3 +30,7 @@ volumes:
 networks:
   default:
     name: ehr_network
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/16
