@@ -21,7 +21,8 @@ def init():
 
                 response = Utilities.createFHIRResource(jsonBody['resource'], body);
 
-                if ( response == 200 or ( response == 400 and ( jsonBody['resource'] == "Subscription" ) ) ):
+                # Because we may have repeat IDs for subscriptions and practitioners as a part of a simulation.
+                if ( response == 200 or ( response == 400 and ( ( jsonBody['resource'] == "Subscription" or jsonBody['resource'] == "Practitioner" ) ) ) ):
                     channel.basic_ack(method.delivery_tag);
                 else:
                     print("Error adding FHIR resource: " + str(response));
