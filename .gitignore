@@ -6,7 +6,6 @@ src/models/
 src/models_full/
 src/models_subset/
 example-ehr-data/
-doc/
 consult.crt
 
 # Created by https://www.gitignore.io/api/macos,pydev,python,eclipse

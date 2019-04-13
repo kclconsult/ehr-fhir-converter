@@ -127,6 +127,30 @@ python setup.py test
 
 ## Deployment
 
+Deployment is via [Docker](https://docs.docker.com/compose/install/), and includes containers for this application and an optional message queue.
+
+Specify the address of the FHIR server and credentials in [docker-compose](docker-compose.yml). If a hostname, reference its corresponding certificate. Also specify the address of the hostname if unlikely to be present in the DNS.
+
+Build these containers:
+
+```
+docker-compose build
+```
+
+Run these containers:
+
+```
+docker-compose up
+```
+
+(Optional) Run without queue:
+
+```
+docker-compose up --scale webapp-queue=0 rabbit=0
+```
+
+Different docker-compose files exist to accomodate different service configurations.
+
 ## Built With
 
 * [NLTK](https://www.nltk.org/)
