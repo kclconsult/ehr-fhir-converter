@@ -3,6 +3,7 @@ import sys, requests, uvicorn, uuid
 from utils.utilities import Utilities
 from FHIR.utilities import Utilities
 from FHIR.create import create
+from translation.FHIRTranslation import FHIRTranslation
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse

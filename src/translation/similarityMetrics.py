@@ -3,6 +3,7 @@ from builtins import object
 from past.utils import old_div
 from fuzzywuzzy import fuzz
 from nltk.corpus import wordnet
+from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
 from translation.translationConstants import TranslationConstants
@@ -11,7 +12,7 @@ from utils.utilities import Utilities
 class SimilarityMetrics(object):
 
     @staticmethod
-    def textMatch(ehr, fhir, highestCompositeResult=True, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
+    def textMatch(ehr, fhir, highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
 
         if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.textSimilarity, [], highestCompositeResult) * TranslationConstants.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
 
@@ -21,7 +22,7 @@ class SimilarityMetrics(object):
             return False;
 
     @staticmethod
-    def morphologicalMatch(ehr, fhir, highestCompositeResult=True, morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
+    def morphologicalMatch(ehr, fhir, highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT, morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
 
         if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.morphologicalSimilarity, [], highestCompositeResult) * TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING >= morphologicalSimilarityThreshold):
             return True;
@@ -49,7 +50,7 @@ class SimilarityMetrics(object):
     @staticmethod
     def morphologicalSimilarity(ehrAttribute, fhirAttribute, lemmaSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
 
-        if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute): return 0;
+        if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute): return 1;
 
         highestSimilarity = 0;
 
@@ -123,8 +124,7 @@ class SimilarityMetrics(object):
 
                 else:
 
-                    textSimilarity = SimilarityMetrics.textSimilarity(synonym, fhirAttribute);
-
+                    textSimilarity = SimilarityMetrics.textSimilarity(Utilities.separationToCapital(synonym), fhirAttribute);
 
                 # Synonyms may also be grammatical variants as opposed to just text matches.
                 if ( alsoUseMorphologicalSimilarity ):
@@ -153,7 +153,9 @@ class SimilarityMetrics(object):
 
     # With highest result False, there needs to be a stricter connection between the class or fields. Probably best for child fields to have stricter match rules.
     @staticmethod
-    def compositeStringSimilarity(ehrClassField, fhirClassField, comparisonMethod, comparisonMethodArgs=[], highestResult=True):
+    def compositeStringSimilarity(ehrClassField, fhirClassField, comparisonMethod, comparisonMethodArgs=[], highestResult=True, removeStopwords=True):
+
+        if ( comparisonMethod(ehrClassField, fhirClassField, *comparisonMethodArgs) == 1 ): return 1;
 
         # If ehrClass string is composite, compare each word with the FHIR target using all of the metrics, and then use chosen combination method to produce a value, e.g. for each word, add these values, and then divide by number of words to get an average match across all words or return highest.
         highestSimilarity = 0;
@@ -163,6 +165,8 @@ class SimilarityMetrics(object):
 
         ehrWords = Utilities.listFromCapitals(ehrClassField);
         fhirWords = Utilities.listFromCapitals(fhirClassField);
+
+        if (removeStopwords): ehrWords = [word for word in ehrWords if word.lower() not in stopwords.words('english')];
 
         for ehrWord in ehrWords:
 
@@ -187,6 +191,6 @@ class SimilarityMetrics(object):
 
         else:
 
-            return old_div(totalSimilarity, len(ehrWords)); #max(float(len(ehrWords)), float(len(fhirWords)));
+            return old_div(totalSimilarity, max(float(len(ehrWords)), float(len(fhirWords))));
 
     ######

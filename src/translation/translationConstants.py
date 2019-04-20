@@ -17,15 +17,15 @@ class TranslationConstants(object):
 
     #
 
-    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=True; # alpha
+    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=False; # alpha
 
     METRICS_FIRST_PAST_THRESHOLD=False; # beta
 
-    METRICS_HIGHEST_STRENGTH=False; # gamma
+    METRICS_HIGHEST_STRENGTH=True; # gamma
 
     METRICS_COMBINED=False; # delta
 
-    METRICS_AVERAGE=True; # epsilon
+    METRICS_AVERAGE=False; # epsilon
 
     # Thresholds don't have to be the same at every stage.
     OVERALL_SIMILARITY_THRESHOLD = 0.95; # tau
@@ -55,7 +55,8 @@ class TranslationConstants(object):
     SELECTIVE_RECURSE = [];
     # SELECTIVE_RECURSE = [ "CodeableConcept", "Coding" ];
 
-    FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA = ["value", "text", "val"];
+    # TODO: Generate this list using NLTK, e.g. synonyms of 'name'. NB. Be careful with name as it makes Patient an ELN.
+    FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA = ["value", "text", "val", "name"];
 
     TYPES_TO_REGEX = { "str": "[A-Za-z]*", "bool": "([Tt]rue|[Ff]alse)"}
 

@@ -19,21 +19,19 @@ class FHIRTranslation(object):
     @staticmethod
     def getPatient(id):
 
-        return ElementTree.parse('../data/' + TranslationConstants.EHR_PATH + ( "-extract" if TranslationConstants.DEMO else "-full" ) + '.xml').find(TranslationConstants.EHR_ENTRY_POINT);
+        return ElementTree.parse('../example-ehr-data/' + TranslationConstants.EHR_PATH + ( "-extract" if TranslationConstants.DEMO else "-full" ) + '.xml').find(TranslationConstants.EHR_ENTRY_POINT);
 
     @staticmethod
     def dataTypeCompatible(ehrChild, fhirChild, fhirClass):
 
         if re.match(TranslationConstants.TYPES_TO_REGEX[TranslationUtilities.getFHIRClassChildType(fhirChild, fhirClass)], ehrChild):
-
             return True;
 
         else:
-
             return False;
 
     @staticmethod
-    def getFHIRClassesToChildren(fhirClasses=TranslationUtilities.getFHIRClasses(), linkedClasses=True, fhirClassesRecurse=True, selectiveRecurse=TranslationConstants.SELECTIVE_RECURSE, includesBackboneElements=True, mergeMainChildrenWithBackboneChildren=True):
+    def getFHIRClassesToChildren(fhirClasses=TranslationUtilities.getFHIRClasses(), linkedClasses=True, fhirClassesRecurse=False, selectiveRecurse=TranslationConstants.SELECTIVE_RECURSE, includesBackboneElements=True, mergeMainChildrenWithBackboneChildren=True):
 
         fhirClassesToChildren = {};
 
@@ -62,7 +60,7 @@ class FHIRTranslation(object):
         return fhirClassesToChildren;
 
     @staticmethod
-    def translatePatient():
+    def translatePatient(breakAfterPlaced=False):
 
          # Get patient record from EHR
         patientXML = FHIRTranslation.getPatient("4917111072");
@@ -93,13 +91,17 @@ class FHIRTranslation(object):
         ehrClasses = set(ehrClassesToChildren.keys());
         fhirClasses = list(fhirClassesToChildren.keys());
 
+        if (TranslationConstants.DEMO): fhirClasses = [models_subset.patient.Patient, models_subset.organization.Organization];
+
         candidateEntryPoints = [];
         classesExamined = 0;
 
-        totalChildren = len(set(set().union(*list(ehrClassesToChildren.values()))));
+        allEHRChildren = set(set().union(*list(ehrClassesToChildren.values())));
+        # Determine which, if any, of these EHR children have been added as pseudo elements as the result of removing Gerunds. If they have, only count the pseudo version (as easier than only counting the actual version, and yields same result).
+        allEHRChildrenWithoutGerundSource = [ehrChild for ehrChild in allEHRChildren if ( ehrChild ==  TranslationUtilities.removeGerund(ehrChild) ) or ( not ehrChild ==  TranslationUtilities.removeGerund(ehrChild) and TranslationUtilities.removeGerund(ehrChild) ) not in allEHRChildren];
+        totalChildren = len(allEHRChildrenWithoutGerundSource);
 
-        if (TranslationConstants.DEMO): fhirClasses = [models_subset.patient.Patient];
-
+        # Potential 'entry' class, from which to start the hops to other classes in order to match children.
         for fhirClass in fhirClasses:
 
             if (TranslationConstants.DEMO): print("FHIR class: " + str(fhirClass));
@@ -116,13 +118,12 @@ class FHIRTranslation(object):
                     if (TranslationConstants.DEMO): print("  EHR child: " + str(ehrChild));
 
                     # Getting all potential placements allows us to select more than just the top match, should we want to, such as to handle the instance in which two EHR leaves map to the same FHIR leaf.
-                    potentialPlacements = FHIRTranslation.recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrClass, ehrChild, 0, [], []);
+                    potentialPlacements = FHIRTranslation.recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrClass, ehrChild, 0, [], [], fhirClass);
 
                     if ( potentialPlacements and len(potentialPlacements) ):
 
                         # Sort EHRchild:FHIRchild matches by strength and hops
-                        sortedPlacements = sorted(potentialPlacements, key=operator.itemgetter(2, 3));
-                        sortedPlacements.reverse();
+                        sortedPlacements = sorted(potentialPlacements, key=operator.itemgetter(2, 3), reverse=True);
 
                         # Get hops of strongest match
                         hops += sortedPlacements[0][3];
@@ -130,26 +131,27 @@ class FHIRTranslation(object):
                         # Get the FHIR class used for the strongest match
                         usedFHIRClassesForPlacement.add(sortedPlacements[0][1]);
 
+                        if (not TranslationConstants.DEMO): sortedPlacements = sortedPlacements[0];
+
                         # Map EHR information to all the details of the strongest match.
-                        placed.append(((ehrChild, ehrClass), sortedPlacements[0]));
+                        placed.append(((ehrChild, ehrClass), sortedPlacements));
 
-            if ( len(placed) > 0 ): candidateEntryPoints.append((fhirClass, ( len(placed) / float(totalChildren) ), hops, "Average hops: " + str( hops / float(len(placed)) ), "Classes used: " + str(len(set(usedFHIRClassesForPlacement))),  placed));
+            if ( len(placed) > 0 ):
+                candidateEntryPoints.append((fhirClass, ( len(placed) / float(totalChildren) ), hops, "Average hops: " + str( hops / float(len(placed)) ), "Classes used: " + str(len(set(usedFHIRClassesForPlacement))),  "Matching children: " + str(placed)));
 
-            if len(placed) == totalChildren: break;
+            if ( len(placed) and breakAfterPlaced ) == totalChildren: break;
 
             classesExamined += 1;
 
             print(str((classesExamined / float(len(fhirClasses))) * 100) + "%");
 
-        for entry in sorted(candidateEntryPoints, key = operator.itemgetter(1, 2)):
+        for entry in sorted(candidateEntryPoints, key = operator.itemgetter(1, 2), reverse=True):
             print(str(entry) + "\n");
 
     @staticmethod
-    def recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrParent, ehrChild, hops, visited, potentialPlacements, alsoParentStrength=False, alsoMatchParent=False):
+    def recursivelyPlaceEHRchild(fhirClass, fhirClassesToChildren, fhirConnections, ehrParent, ehrChild, hops, visited, potentialPlacements, rootFHIRClass=None, alsoParentStrength=False, alsoMatchParent=False):
 
         visited.append(fhirClass);
-
-        hops += 1;
 
         for fhirChild in fhirClassesToChildren[fhirClass]:
 
@@ -174,14 +176,18 @@ class FHIRTranslation(object):
 
                 if ( (fhirChild[0], fhirClass, matchStrength, hops) not in potentialPlacements):
 
-                    potentialPlacements.append((fhirChild[0], fhirClass, matchStrength, hops));
+                    # Hops as negative helps with sorting.
+                    potentialPlacements.append((fhirChild[0], fhirClass, matchStrength, hops * -1));
 
-        if ( fhirClass not in list(fhirConnections.keys()) or ( hasattr(TranslationConstants, 'MAX_HOPS') and hops >= TranslationConstants.MAX_HOPS  ) ): return None;
+        if ( fhirClass not in list(fhirConnections.keys()) or ( hasattr(TranslationConstants, 'MAX_HOPS') and hops >= TranslationConstants.MAX_HOPS ) ): return None;
+
+        hops += 1;
 
         for connectedResource in fhirConnections[fhirClass]:
 
-            if connectedResource[0] not in visited:
+            # Don't visit a FHIR class via another class that is linked to the root class, otherwise this disturbs the hops calculation.
+            if connectedResource[0] not in visited and ( ( fhirClass.__name__ == rootFHIRClass.__name__ ) or ( ( not fhirClass.__name__ == rootFHIRClass.__name__ ) and ( connectedResource[0] not in [fhirConnection[0] for fhirConnection in fhirConnections[rootFHIRClass]] ) ) ):
 
-                FHIRTranslation.recursivelyPlaceEHRchild(connectedResource[0], fhirClassesToChildren, fhirConnections, ehrParent, ehrChild,  hops, visited, potentialPlacements, alsoParentStrength, alsoMatchParent);
+                FHIRTranslation.recursivelyPlaceEHRchild(connectedResource[0], fhirClassesToChildren, fhirConnections, ehrParent, ehrChild, hops, visited, potentialPlacements, rootFHIRClass, alsoParentStrength, alsoMatchParent);
 
         return potentialPlacements;

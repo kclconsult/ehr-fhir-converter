@@ -39,7 +39,6 @@ class Matches(object):
         semanticSimilarityValue = SimilarityMetrics.compositeStringSimilarity(ehrClassField, fhirClassField, semanticSimilarity, semanticSimilarityArgs, highestCompositeResult) * semanticSimilarityWeighting;
 
         if ( firstPastThreshold and semanticSimilarityValue >= semanticSimilarityThreshold):
-
             return SimilarityMetrics.compositeStringSimilarity(ehrClassField, fhirClassField, semanticSimilarity, semanticSimilarityArgs, highestCompositeResult);
 
         #

@@ -1,7 +1,7 @@
 from builtins import str
 from builtins import range
 from builtins import object
-import pkgutil, importlib, pyclbr, inspect, sys, operator, re
+import pkgutil, importlib, pyclbr, inspect, sys, operator, re, nltk
 
 from utils.utilities import Utilities;
 from translation.translationConstants import TranslationConstants;
@@ -24,6 +24,7 @@ class TranslationUtilities(object):
                 classes = sorted(list(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys()), key=Utilities.cmpToKey(Utilities.classLengthSort))
             else:
                 classes = sorted(list(pyclbr.readmodule(TranslationConstants.MODELS_PATH + "." + fhirModule).keys()), cmp=Utilities.classLengthSort)
+
             # Sorts the classes in order to always have the base class (non-backbone) first, e.g. Encounter first over something like EncounterLocation. Based on the assumption that shortest class names are the base element class.
             for fhirClass in classes:
 
@@ -59,7 +60,7 @@ class TranslationUtilities(object):
 
             if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in fhirClass.__name__]): continue
 
-            for connectingClass in [t for t in (TranslationUtilities.getFHIRElements(fhirClass, {}, False, True, False, [], [], False, True, True, fhirClasses) or [])]:
+            for connectingClass in [connectedClassEntry for connectedClassEntry in (TranslationUtilities.getFHIRElements(fhirClass, {}, False, True, False, [], [], False, False, True, True, fhirClasses)[fhirClass] or [])]:
 
                 if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in connectingClass.__name__]) or ( excludeBackboneClasses and ( "BackboneElement" in [base.__name__ for base in connectingClass.__bases__])): continue;
 
@@ -78,7 +79,7 @@ class TranslationUtilities(object):
             classesToChildren[root].add(attributeName);
 
     @staticmethod
-    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
+    def getFHIRElements(root, classesToChildren, children=True, parents=True, recurse=True, selectiveRecurse=[], visited=[], addParentName=False, addStemmed=False, attributeTypeOverAttributeName=False, resolveFHIRReferences=False, otherFHIRClasses=None):
 
         if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in root.__name__]): return [];
 
@@ -149,19 +150,26 @@ class TranslationUtilities(object):
 
             if len([excludedMatch for excludedMatch in TranslationConstants.EXCLUDED_FHIR_CLASS_TYPES if excludedMatch in attributeName]): continue
 
-
             if children:
+
                 elementsOfChildren = TranslationUtilities.getFHIRElements(attributeContainer[2], {}, True, False, False);
 
-                # If a parent child (linked to another FHIR resource) has a suitable field that can hold data (e.g. value, text), then it doesn't matter if it's a parent, as it can effectively just act as a named container, so it might as well be a child.
+                # If a parent child (linked to another FHIR resource) has a suitable field that can hold data (e.g. value, text), then it doesn't matter if it's a parent, as it can effectively just act as a named container, so it might as well be a child (effective leaf node).
                 if not callable(attribute) or not set(TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA).isdisjoint(set(elementsOfChildren)):
 
                     TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName);
 
-                    # Add an additional pseudoelement with the parent name appended, whiich aims to represents the context given by the parent (e.g. child: first (not enough on its own) parent: HumanName full: firstHumanName (better representation of what is stored)).
+                    # Add an additional pseudoelement with the parent name appended, which aims to represents the context given by the parent (e.g. child: given (not enough on its own) parent: HumanName full: givenHumanName (better representation of what is stored)).
                     if addParentName:
 
                         TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName + str(root.__name__));
+
+                    separatedParentName = Utilities.listFromCapitals(str(root.__name__));
+
+                    # To reflect the fact that certain classes are better represented by removing the first word (e.g. HumanName -> Name)
+                    if ( addStemmed and len(separatedParentName) > 1 ):
+
+                        TranslationUtilities.processAttribute(root, attributeTypeOverAttributeName, resolveFHIRReferences, classesToChildren, attributeContainer, attributeName + separatedParentName[len(separatedParentName) - 1]);
 
             if parents:
                 if callable(attribute):
@@ -174,19 +182,15 @@ class TranslationUtilities(object):
             if ( ( recurse and len(selectiveRecurse) == 0 ) or ( recurse and str(root.__name__) in selectiveRecurse ) or ( recurse and str(attributeContainer[2].__name__) in selectiveRecurse ) ) and callable(attribute) and "FHIRReference" not in str(root.__name__) and "Extension" not in str(attributeContainer[2]) and attributeContainer[2] != root and attributeContainer[0] not in visited:
 
                 visited.append(attributeContainer[0]);
-                TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited, addParentName, attributeTypeOverAttributeName, resolveFHIRReferences, otherFHIRClasses);
+                TranslationUtilities.getFHIRElements(attributeContainer[2], classesToChildren, children, parents, recurse, selectiveRecurse, visited, addParentName, addStemmed, attributeTypeOverAttributeName, resolveFHIRReferences, otherFHIRClasses);
 
-        if recurse:
-            return classesToChildren;
-
-        else:
-            return classesToChildren[root];
+        return classesToChildren;
 
     @staticmethod
-    def getFHIRClassChildren(fhirClass, linkedClasses, recurse=True, selectiveRecurse=[]):
+    def getFHIRClassChildren(fhirClass, linkedClasses=True, recurse=False, selectiveRecurse=[], topLevelEffectiveLeafNodes=True):
 
         # Classes plural because may also include linked classes.
-        fhirClassesToChildren = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, [], True);
+        fhirClassesToChildren = TranslationUtilities.getFHIRElements(fhirClass, {}, True, False, recurse, selectiveRecurse, [], True, True);
 
         if fhirClassesToChildren != None:
 
@@ -203,10 +207,20 @@ class TranslationUtilities(object):
                     else:
                         fhirChildrenOrChildrenAndParent.append(fhirClassChild);
 
+            # A version of effective leaf nodes, in which a class that is an ELN has its own name added as a child, allowing EHR children to match with the parent name (as opposed to just the child name).
+            if ( topLevelEffectiveLeafNodes and  set(TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA).isdisjoint(set(fhirChildrenOrChildrenAndParent)) ):
+                if ( linkedClasses ):
+                    fhirChildrenOrChildrenAndParent.append((fhirClass.__name__, fhirClass));
+
+                else:
+                    fhirChildrenOrChildrenAndParent.append(fhirClass.__name__);
+
             return fhirChildrenOrChildrenAndParent;
 
+        return None;
+
     @staticmethod
-    def getFHIRClassChildType(fhirChild, fhirClass, addParentName=True):
+    def getFHIRClassChildType(fhirChild, fhirClass, addParentName=True, addStemmed=True):
 
         # If we're adding pseudo child elements, we won't be able to derive a type for them (because they don't exist), so remove parent suffix.
         if ( addParentName ):
@@ -214,6 +228,10 @@ class TranslationUtilities(object):
             if ( re.match( "[a-zA-Z0-9]+" + fhirClass.__name__ + "[a-zA-Z0-9]*" , fhirChild ) ):
 
                 fhirChild = fhirChild[:fhirChild.index(fhirClass.__name__)];
+
+        # TODO: Handle case in which stemmed version of FHIR class is added, so not straightforward to derive type.
+        if ( addStemmed ):
+            return "str";
 
         sourceLines = inspect.getsource(fhirClass).split("\n");
 
@@ -312,10 +330,10 @@ class TranslationUtilities(object):
 
         if ( duplicates ):
 
-           ehrClasses = Utilities.getXMLElements(patientXML, {}, children, parents, duplicates);
-           allValues = [];
-           for depth in ehrClasses: allValues += ehrClasses[depth];
-           return allValues;
+            ehrClasses = Utilities.getXMLElements(patientXML, {}, children, parents, duplicates);
+            allValues = [];
+            for depth in ehrClasses: allValues += ehrClasses[depth];
+            return allValues;
 
         else:
 
@@ -323,7 +341,20 @@ class TranslationUtilities(object):
             return [element.tag for element in set(set().union(*list(Utilities.getXMLElements(patientXML, {}, children, parents, duplicates).values())))];
 
     @staticmethod
-    def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False, contextualiseChildren=True):
+    def removeGerund(ehrChild):
+
+        separatedElementTag = Utilities.listFromCapitals(ehrChild);
+
+        if ( len(separatedElementTag) > 1 ):
+
+            taggedSeperatedElementTag = nltk.pos_tag(separatedElementTag);
+            separatedElementTag = [tag[0] for tag in taggedSeperatedElementTag if "VBG" not in tag[1]]
+            return "".join(separatedElementTag);
+
+        return ehrChild;
+
+    @staticmethod
+    def getEHRClassChildren(patientXML, ehrClass, children=True, parents=False, allEHRChildren=False, contextualiseChildren=True, removeGerunds=True):
 
         ehrClassChildren = {};
 
@@ -336,16 +367,20 @@ class TranslationUtilities(object):
                 for element in ehrClassExampleDepthsToChildren[0]:
 
                     # Contextualise those EHR children that do not give enough context on their own, because they are just generic children.
-                    if ( contextualiseChildren and element.tag in TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA ):
+                    if ( contextualiseChildren and element.tag.lower() in TranslationConstants.FIELDS_THAT_INDICATE_RESOURCE_CAN_HOLD_ANY_DATA ):
 
                         # Work out how to present this new compound child (child + parent name), based on which separators are used by this EHR.
                         if ( TranslationConstants.SEPARATOR != "" ):
                             element.tag = ehrClass + TranslationConstants.SEPARATOR + element.tag;
 
                         else:
-                            element.tag = ehrClass[1:] + ehrClass[0].upper() + element.tag;
+                            element.tag = ehrClass[0].upper() + ehrClass[1:] + element.tag;
 
                     ehrClassChildren.setdefault(ehrClass, []).extend([element.tag]);
+
+                    # If an EHR word begins with a gerund (such as 'Managing' in 'ManagingOrganisation'), this potentially complicates the context of the word, and so should be accounted for. Remove gerunds AND add the gerund free version as an additional EHR child.
+                    if ( removeGerunds ): ehrClassChildren.setdefault(ehrClass, []).extend([TranslationUtilities.removeGerund(element.tag)]);
+
 
             # As we may have multiple examples of an EHR class in an example piece of marked up data from an EHR vendor, we want to find all possible examples of children that can be listed under that class.
             if ( not allEHRChildren ): break;
