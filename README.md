@@ -1,4 +1,4 @@
-# FHIR Parser
+# EHR-FHIR Mapper
 
 Converting data from arbitrary EHR vendors to the FHIR standard.
 

@@ -17,7 +17,7 @@ class TranslationConstants(object):
 
     #
 
-    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=False; # alpha
+    COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT=True; # alpha
 
     METRICS_FIRST_PAST_THRESHOLD=False; # beta
 
@@ -28,7 +28,7 @@ class TranslationConstants(object):
     METRICS_AVERAGE=False; # epsilon
 
     # Thresholds don't have to be the same at every stage.
-    OVERALL_SIMILARITY_THRESHOLD = 0.95; # tau
+    OVERALL_SIMILARITY_THRESHOLD = 0.90; # tau
 
     TEXT_SIMILARITY_THRESHOLD = 0.95; # tau_{t}
 

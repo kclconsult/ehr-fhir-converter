@@ -12,12 +12,13 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/consult-kcl/ehr-fhir-mapper",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(""),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     test_suite='nose.collector',
-    tests_require=['nose']
+    tests_require=['pytest'],
+    setup_requires=["pytest-runner"]
 )

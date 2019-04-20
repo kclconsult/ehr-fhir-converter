@@ -1,7 +1,7 @@
 from mockito import mock, verify
 import unittest, sys
 
-import mapper
+from translation.matches import Matches
 
 class MapperTests(unittest.TestCase):
 

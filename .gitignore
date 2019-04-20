@@ -9,6 +9,8 @@ example-ehr-data/
 consult.crt
 *.pptx
 docs/*.pptx
+sample-output/
+.pytest_cache/
 
 # Created by https://www.gitignore.io/api/macos,pydev,python,eclipse
 

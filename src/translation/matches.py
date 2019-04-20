@@ -12,7 +12,7 @@ class Matches(object):
     textSimilarity=SimilarityMetrics.textSimilarity, textSimilarityArgs=[], textSimilarityWeighting=TranslationConstants.TEXT_SIMILARITY_WEIGHTING,
     morphologicalSimilarity=SimilarityMetrics.morphologicalSimilarity, morphologicalSimilarityArgs=[], morphologicalSimilarityWeighting=TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING,
     semanticSimilarity=SimilarityMetrics.semanticSimilarity, semanticSimilarityArgs=[], semanticSimilarityWeighting=TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,
-    textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+    textSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD,
     semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
     morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
     overallSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
@@ -45,7 +45,7 @@ class Matches(object):
 
         strength = max(textSimilarityValue, max(semanticSimilarityValue, morphologicalSimilarityValue));
 
-        if ( highestStrength and strength >= overallSimilarityThreshold):
+        if ( highestStrength and strength >= overallSimilarityThreshold ):
             return strength;
 
         strength = textSimilarityValue + semanticSimilarityValue + morphologicalSimilarityValue;
@@ -63,7 +63,7 @@ class Matches(object):
     # Simple abstraction over match (note also reordered params for convenience in expressing thresholds): see if there is a match at all, based on thresholds.
     @staticmethod
     def matches(ehr, fhir,
-        textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+        textSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD,
         morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
         semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
         similarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,

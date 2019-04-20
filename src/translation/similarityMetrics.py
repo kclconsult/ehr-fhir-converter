@@ -69,7 +69,7 @@ class SimilarityMetrics(object):
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;
 
         highestSimilarity = 0;
-
+        
         # wordnet requires word separation by underscore, whereas EHR XML responses (for TPP at least) use camelCase (this won't be an issue if used with composite string similarity, where only one word is used at a time).
         for set in wordnet.synsets(Utilities.capitalToSeparation(ehrAttribute)):
 
