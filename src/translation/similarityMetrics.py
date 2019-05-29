@@ -12,7 +12,7 @@ from utils.utilities import Utilities
 class SimilarityMetrics(object):
 
     @staticmethod
-    def textMatch(ehr, fhir, highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT, textSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
+    def textMatch(ehr, fhir, highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT, textSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD):
 
         if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.textSimilarity, [], highestCompositeResult) * TranslationConstants.TEXT_SIMILARITY_WEIGHTING >= textSimilarityThreshold):
 
@@ -22,7 +22,7 @@ class SimilarityMetrics(object):
             return False;
 
     @staticmethod
-    def morphologicalMatch(ehr, fhir, highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT, morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD):
+    def morphologicalMatch(ehr, fhir, highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT, morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD):
 
         if (SimilarityMetrics.compositeStringSimilarity(ehr, fhir, SimilarityMetrics.morphologicalSimilarity, [], highestCompositeResult) * TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING >= morphologicalSimilarityThreshold):
             return True;
@@ -69,7 +69,7 @@ class SimilarityMetrics(object):
         if SimilarityMetrics.textMatch(ehrAttribute, fhirAttribute, False): return 0;
 
         highestSimilarity = 0;
-        
+
         # wordnet requires word separation by underscore, whereas EHR XML responses (for TPP at least) use camelCase (this won't be an issue if used with composite string similarity, where only one word is used at a time).
         for set in wordnet.synsets(Utilities.capitalToSeparation(ehrAttribute)):
 

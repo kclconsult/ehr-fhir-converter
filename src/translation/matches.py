@@ -13,8 +13,8 @@ class Matches(object):
     morphologicalSimilarity=SimilarityMetrics.morphologicalSimilarity, morphologicalSimilarityArgs=[], morphologicalSimilarityWeighting=TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING,
     semanticSimilarity=SimilarityMetrics.semanticSimilarity, semanticSimilarityArgs=[], semanticSimilarityWeighting=TranslationConstants.SEMANTIC_SIMILARITY_WEIGHTING,
     textSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD,
-    semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
-    morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+    semanticSimilarityThreshold=TranslationConstants.SEMANTIC_SIMILARITY_THRESHOLD,
+    morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD,
     overallSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
     highestCompositeResult=TranslationConstants.COMPOSITE_STRING_SIMILARITY_HIGHEST_COMPOSITE_RESULT,
     firstPastThreshold=TranslationConstants.METRICS_FIRST_PAST_THRESHOLD,
@@ -64,8 +64,8 @@ class Matches(object):
     @staticmethod
     def matches(ehr, fhir,
         textSimilarityThreshold=TranslationConstants.TEXT_SIMILARITY_THRESHOLD,
-        morphologicalSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
-        semanticSimilarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
+        morphologicalSimilarityThreshold=TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD,
+        semanticSimilarityThreshold=TranslationConstants.SEMANTIC_SIMILARITY_THRESHOLD,
         similarityThreshold=TranslationConstants.OVERALL_SIMILARITY_THRESHOLD,
         textSimilarity = SimilarityMetrics.textSimilarity, textSimilarityArgs=[], textSimilarityWeighting = TranslationConstants.TEXT_SIMILARITY_WEIGHTING, \
         morphologicalSimilarity = SimilarityMetrics.morphologicalSimilarity, morphologicalSimilarityArgs=[], morphologicalSimilarityWeighting = TranslationConstants.MORPHOLOGICAL_SIMILARITY_WEIGHTING, \

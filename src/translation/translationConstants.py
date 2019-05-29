@@ -28,7 +28,7 @@ class TranslationConstants(object):
     METRICS_AVERAGE=False; # epsilon
 
     # Thresholds don't have to be the same at every stage.
-    OVERALL_SIMILARITY_THRESHOLD = 0.90; # tau
+    OVERALL_SIMILARITY_THRESHOLD = 0.95; # tau
 
     TEXT_SIMILARITY_THRESHOLD = 0.95; # tau_{t}
 

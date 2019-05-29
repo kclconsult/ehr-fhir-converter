@@ -15,7 +15,7 @@ services:
       - REQUESTS_CA_BUNDLE=consult.crt
     extra_hosts:
       # If fhir server at IP rather than known host, name on fhir server's certificate : fhir server IP.
-      romanova: 192.168.99.101
+      romanova: 10.0.1.196
     tty: true
 
   rabbit:

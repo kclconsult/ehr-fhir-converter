@@ -60,7 +60,7 @@ class FHIRTranslation(object):
         return fhirClassesToChildren;
 
     @staticmethod
-    def translatePatient(breakAfterPlaced=False):
+    def translatePatient(breakAfterPlaced=False, allPlacements=True):
 
          # Get patient record from EHR
         patientXML = FHIRTranslation.getPatient("4917111072");
@@ -131,7 +131,7 @@ class FHIRTranslation(object):
                         # Get the FHIR class used for the strongest match
                         usedFHIRClassesForPlacement.add(sortedPlacements[0][1]);
 
-                        if (not TranslationConstants.DEMO): sortedPlacements = sortedPlacements[0];
+                        if (not TranslationConstants.DEMO and not allPlacements): sortedPlacements = sortedPlacements[0];
 
                         # Map EHR information to all the details of the strongest match.
                         placed.append(((ehrChild, ehrClass), sortedPlacements));
@@ -158,9 +158,9 @@ class FHIRTranslation(object):
             if ( not alsoMatchParent or Matches.fuzzyMatch(ehrParent, fhirClass.__name__) > TranslationConstants.FUZZY_SIMILARITY_THRESHOLD ) \
             and Matches.matches( \
                 ehrChild, fhirChild[0], \
-                TranslationConstants.OVERALL_SIMILARITY_THRESHOLD, \
-                TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD, \
-                TranslationConstants.OVERALL_CHILD_SIMILARITY_THRESHOLD \
+                TranslationConstants.TEXT_SIMILARITY_THRESHOLD, \
+                TranslationConstants.MORPHOLOGICAL_SIMILARITY_THRESHOLD, \
+                TranslationConstants.SEMANTIC_SIMILARITY_THRESHOLD \
             ) \
             and FHIRTranslation.dataTypeCompatible(ehrChild, fhirChild[0], fhirChild[1]):
 
