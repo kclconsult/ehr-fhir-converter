@@ -8,7 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-Before installing, [download and install Python 2.7](https://www.python.org/download/releases/2.7/) and [Pip](https://pip.pypa.io/en/stable/installing/), a Python package manager.
+Before installing, [download and install Python 3](https://www.python.org/download/releases/3.7) and [Pip](https://pip.pypa.io/en/stable/installing/), a Python package manager.
 
 (Recommended) Then install [virtualenv](https://virtualenv.pypa.io/en/stable/installation/).
 
@@ -23,14 +23,14 @@ git clone https://github.kcl.ac.uk/consult/fhir-ehr-adapter
 Change into the directory:
 
 ```
-cd fhir-ehr-adapter/fhir-ehr-adapter
+cd ehr-fhir-adapter/src
 ```
 
-(Optional) Initialise a virtual environment, and activate:
+Initialise a virtual environment, and activate:
 
 ```
-virtualenv .venv
-. .venv/bin/activate
+virtualenv -p python3 env
+. venv/bin/activate
 ```
 
 Install dependencies:
@@ -42,11 +42,11 @@ pip install -r requirements.txt
 Rename EHR configuration file, and add appropriate variables:
 
 ```
-mv src/main/python/EHR/APIVariables-Template.py src/main/python/EHR/APIVariables.py
-vim src/main/python/EHR/APIVariables.py
+mv src/EHR/APIVariables-Template.py src/EHR/APIVariables.py
+vim src/EHR/APIVariables.py
 ```
 
-##### (Option 1) Build FHIR classes
+##### (Optional, Option 1) Build FHIR classes
 
 Clone the FHIR parser repository:
 
@@ -85,7 +85,7 @@ touch models_full/__init__.py
 
 Automated through `fhir-parser.sh`.
 
-##### (Option 2) Download FHIR classes
+##### (Optional, Option 2) Download FHIR classes
 
 Clone the FHIR client repository.
 
@@ -105,11 +105,9 @@ cp -r client-py/fhirclient/models/ models_full/
 Run setup tools
 
 ```
-cd ../../../
+cd ../
 python setup.py sdist bdist_wheel
 ```
-
-## Usage
 
 Given a certain release, either available in ``dist/`` if built, or via Github, install as follows:
 
@@ -117,7 +115,15 @@ Given a certain release, either available in ``dist/`` if built, or via Github, 
 python setup.py install
 ```
 
-The app runs by default on port 8080.
+## Usage
+
+Run as follows:
+
+```
+python listen.py
+```
+
+The app runs by default on port 3004.
 
 ## Running the tests
 

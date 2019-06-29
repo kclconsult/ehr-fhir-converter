@@ -9,6 +9,7 @@ example-ehr-data/
 consult.crt
 *.pptx
 docs/*.pptx
+docs/A\ pipeline\ for\ EHR\ to\ FHIR\ conversion.pptx
 sample-output/
 .pytest_cache/
 
