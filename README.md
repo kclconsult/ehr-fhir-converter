@@ -30,7 +30,7 @@ Initialise a virtual environment, and activate:
 
 ```
 virtualenv -p python3 env
-. venv/bin/activate
+. env/bin/activate
 ```
 
 Install dependencies:

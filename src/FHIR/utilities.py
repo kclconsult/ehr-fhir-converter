@@ -25,6 +25,17 @@ class Utilities(object):
     else:
       return 400;
 
+  @staticmethod
+  def anonymise(resource, data):
+
+    if resource == "Patient":
+
+      if data['birthDate']:
+
+        data['birthDate'] = data['birthDate'][0:4] + "-01-01";
+
+    return data;
+
 
   @staticmethod
   def createFHIRResource(resource, data):
@@ -45,7 +56,7 @@ class Utilities(object):
       FHIR_USERNAME = config.get('FHIR_SERVER', 'USERNAME');
       FHIR_PASSWORD = config.get('FHIR_SERVER', 'PASSWORD');
 
-    data = json.loads(data);
+    data =  Utilities.anonymise(resource, json.loads(data));
 
     with open("FHIR/fhir-json/templates/" + resource + ".json") as templateFile:
 
