@@ -17,12 +17,14 @@ class Utilities(object):
       },
       auth=HTTPBasicAuth(username, password),
       url=url,
-      data=body
+      data=body,
+      verify=True
     );
 
     if (request.status_code == 201):
       return 200;
     else:
+      print("Error calling FHIR server. Status: " + str(request.status_code) + ". Details: " + str(request.content));
       return 400;
 
   @staticmethod
@@ -35,7 +37,6 @@ class Utilities(object):
         data['birthDate'] = data['birthDate'][0:4] + "-01-01";
 
     return data;
-
 
   @staticmethod
   def createFHIRResource(resource, data):
@@ -56,7 +57,7 @@ class Utilities(object):
       FHIR_USERNAME = config.get('FHIR_SERVER', 'USERNAME');
       FHIR_PASSWORD = config.get('FHIR_SERVER', 'PASSWORD');
 
-    data =  Utilities.anonymise(resource, json.loads(data));
+    data = Utilities.anonymise(resource, json.loads(data));
 
     with open("FHIR/fhir-json/templates/" + resource + ".json") as templateFile:
 

@@ -27,7 +27,7 @@ def init():
                 else:
                     print("Error adding FHIR resource: " + str(response));
 
-            channel.basic_consume(callback, queue=config['MESSAGE_QUEUE']['NAME']);
+            channel.basic_consume(config['MESSAGE_QUEUE']['NAME'], callback);
 
             try:
                 channel.start_consuming();
