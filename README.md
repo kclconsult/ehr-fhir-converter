@@ -4,8 +4,6 @@ Convert data from arbitrary EHR vendors to the FHIR standard.
 
 Cite as _[A semi-autonomous approach to connecting proprietary EHR standards to FHIR](https://arxiv.org/pdf/1911.12254.pdf). Chapman, Martin and Curcin, Vasa and Sklar, Elizabeth I. 2019._
 
-Cite as _[A semi-autonomous approach to connecting proprietary EHR standards to FHIR](https://arxiv.org/pdf/1911.12254.pdf). Chapman, Martin and Curcin, Vasa and Sklar, Elizabeth I. 2019._
-
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
