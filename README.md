@@ -1,6 +1,6 @@
-# EHR-FHIR Mapper
+# EHR-FHIR Converter
 
-Converting data from arbitrary EHR vendors to the FHIR standard.
+Convert data from arbitrary EHR vendors to the FHIR standard.
 
 Cite as _[A semi-autonomous approach to connecting proprietary EHR standards to FHIR](https://arxiv.org/pdf/1911.12254.pdf). Chapman, Martin and Curcin, Vasa and Sklar, Elizabeth I. 2019._
 
