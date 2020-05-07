@@ -2,7 +2,7 @@
 
 Convert data from arbitrary EHR vendors to the FHIR standard.
 
-Operates as part of the [CONSULT architecture](https://arxiv.org/pdf/1911.12254.pdf) (_ehr-fhir-converter_), a collaborative mobile decision-support system to help patients suffering from chronic diseases with multiple morbidities self-manage their treatment:
+Operates as part of the [CONSULT architecture](https://dl.acm.org/doi/pdf/10.5555/3306127.3332107?download=true) (_ehr-fhir-converter_), a collaborative mobile decision-support system to help patients suffering from chronic diseases with multiple morbidities self-manage their treatment:
 
 <img src="consult.png">
 
