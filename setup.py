@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="ehr-fhir-mapper-martinchapman",
+    name="ehr-fhir-converter-kclconsult",
     version="0.0.1",
     author="Martin Chapman",
-    author_email="contact@martinchapman.co.uk",
+    author_email="martin.chapman@kcl.ac.uk",
     description="Convert arbitrary EHR extracts to FHIR",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/consult-kcl/ehr-fhir-mapper",
+    url="https://github.com/kclconsult/ehr-fhir-converter",
     packages=setuptools.find_packages(""),
     classifiers=[
         "Programming Language :: Python :: 3",

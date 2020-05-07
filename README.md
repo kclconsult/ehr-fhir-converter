@@ -2,6 +2,10 @@
 
 Convert data from arbitrary EHR vendors to the FHIR standard.
 
+Operates as part of the [CONSULT architecture](https://arxiv.org/pdf/1911.12254.pdf) (_ehr-fhir-converter_), a collaborative mobile decision-support system to help patients suffering from chronic diseases with multiple morbidities self-manage their treatment:
+
+<img src="consult.png">
+
 Cite as _[A semi-autonomous approach to connecting proprietary EHR standards to FHIR](https://arxiv.org/pdf/1911.12254.pdf). Chapman, Martin and Curcin, Vasa and Sklar, Elizabeth I. 2019._
 
 ## Getting Started
@@ -14,18 +18,23 @@ Before installing, [download and install Python 3](https://www.python.org/downlo
 
 (Recommended) Then install [virtualenv](https://virtualenv.pypa.io/en/stable/installation/).
 
-### Building (Optional)
+### Other service communication
+
+Receives messages from: ehr-integration ([install](https://github.kcl.ac.uk/consult/ehr-integration/blob/master/README.md)).
+Sends messages to: fhir-server ([install](https://github.com/kclconsult/hapi-fhir-jpaserver-starter/blob/master/README.md)).
+
+## Running
 
 Clone this repository:
 
 ```
-git clone https://github.kcl.ac.uk/consult/fhir-ehr-adapter
+git clone git@github.com:kclconsult/ehr-fhir-converter.git
 ```
 
 Change into the directory:
 
 ```
-cd ehr-fhir-adapter/src
+cd ehr-fhir-converter/src
 ```
 
 Initialise a virtual environment, and activate:
@@ -39,13 +48,6 @@ Install dependencies:
 
 ```
 pip install -r requirements.txt
-```
-
-Rename EHR configuration file, and add appropriate variables:
-
-```
-mv src/EHR/APIVariables-Template.py src/EHR/APIVariables.py
-vim src/EHR/APIVariables.py
 ```
 
 ##### (Optional, Option 1) Build FHIR classes
@@ -102,21 +104,6 @@ cd src/main/python/
 cp -r client-py/fhirclient/models/ models_full/
 ```
 
-##### Back to building
-
-Run setup tools
-
-```
-cd ../
-python setup.py sdist bdist_wheel
-```
-
-Given a certain release, either available in ``dist/`` if built, or via Github, install as follows:
-
-```
-python setup.py install
-```
-
 ## Usage
 
 Run as follows:
@@ -126,6 +113,24 @@ python listen.py
 ```
 
 The app runs by default on port 3004.
+
+## Install as package
+
+Run setup tools from the root directory:
+
+```
+python setup.py sdist bdist_wheel
+```
+
+Given a certain release, either available in ``dist/`` if built, or via Github, install as follows:
+
+```
+python setup.py install
+```
+
+## Documentation
+
+[View](https://kclconsult.github.io/ehr-fhir-converter).
 
 ## Running the tests
 
@@ -148,7 +153,7 @@ docker-compose build
 Run these containers:
 
 ```
-docker-compose up
+docker-compose up -d
 ```
 
 (Optional) Run without queue:
@@ -173,14 +178,10 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Authors
 
-Produced as part of the [CONSULT project](https://consult.kcl.ac.uk/).
+Produced as part of the [CONSULT](https://consult.kcl.ac.uk/) project.
 
 ![CONSULT project](https://consult.kcl.ac.uk/wp-content/uploads/sites/214/2017/12/overview-consult-768x230.png "CONSULT project")
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
-## Acknowledgments
-
-*

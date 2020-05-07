@@ -98,11 +98,9 @@ class Medication(HTTPEndpoint):
 @create.route("/MedicationDispense")
 class Dispense(HTTPEndpoint):
     async def post(self, request):
-        print(os.getcwd());
         return Response("", Utilities.createFHIRResource("MedicationDispense", await request.body()), {}, "");
 
 @create.route("/Subscription")
 class Subscription(HTTPEndpoint):
     async def post(self, request):
-        print(os.getcwd());
         return Response("", Utilities.createFHIRResource("Subscription", await request.body()), {}, "");

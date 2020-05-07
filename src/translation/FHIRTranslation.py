@@ -17,11 +17,6 @@ import models_subset.patient;
 class FHIRTranslation(object):
 
     @staticmethod
-    def getPatient(id):
-
-        return ElementTree.parse('../example-ehr-data/' + TranslationConstants.EHR_PATH + ( "-extract" if TranslationConstants.DEMO else "-full" ) + '.xml').find(TranslationConstants.EHR_ENTRY_POINT);
-
-    @staticmethod
     def dataTypeCompatible(ehrChild, fhirChild, fhirClass):
 
         if re.match(TranslationConstants.TYPES_TO_REGEX[TranslationUtilities.getFHIRClassChildType(fhirChild, fhirClass)], ehrChild):
@@ -60,10 +55,7 @@ class FHIRTranslation(object):
         return fhirClassesToChildren;
 
     @staticmethod
-    def translatePatient(breakAfterPlaced=False, allPlacements=True):
-
-         # Get patient record from EHR
-        patientXML = FHIRTranslation.getPatient("4917111072");
+    def translatePatient(patientXML, breakAfterPlaced=False, allPlacements=True):
 
         ehrClasses = TranslationUtilities.getEHRClasses(patientXML);
 
