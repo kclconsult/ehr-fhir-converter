@@ -9,10 +9,10 @@ services:
     depends_on:
       - rabbit
     environment:
-      - FHIR_SERVER_ADDRESS=romanova
-      - FHIR_SERVER_USERNAME=consult
-      - FHIR_SERVER_PASSWORD=consultproject2017
-      - REQUESTS_CA_BUNDLE=consult.crt
+      FHIR_SERVER_ADDRESS: ${FHIR_SERVER_ADDRESS}
+      FHIR_SERVER_USERNAME: ${FHIR_SERVER_USERNAME}
+      FHIR_SERVER_PASSWORD: ${FHIR_SERVER_PASSWORD}
+      REQUESTS_CA_BUNDLE: ${REQUESTS_CA_BUNDLE}
     extra_hosts:
       # If fhir server at IP rather than known host, name on fhir server's certificate : fhir server IP.
       romanova: 10.0.1.196
