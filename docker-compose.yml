@@ -3,7 +3,7 @@ version: "3.7"
 services:
 
   webapp-queue:
-    command: ["./wait-for-it.sh", "--timeout=0", "ehr-fhir-mapper_rabbit_1:15672", "--", "python", "receive.py"]
+    command: ["./wait-for-it.sh", "--timeout=0", "ehr-fhir-converter_rabbit_1:15672", "--", "python", "receive.py"]
     build:
       context: .
     depends_on:

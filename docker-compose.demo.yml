@@ -3,13 +3,13 @@ version: "3.7"
 services:
 
   webapp-queue:
-    command: ["./wait-for-it.sh", "--timeout=0", "ehr-fhir-mapper_rabbit_1:15672", "--", "python", "receive.py"]
+    command: ["./wait-for-it.sh", "--timeout=0", "ehr-fhir-converter_rabbit_1:15672", "--", "python", "receive.py"]
     build:
       context: .
     depends_on:
       - rabbit
     environment:
-      FHIR_SERVER_ADDRESS: ${FHIR_SERVER_ADDRESS}
+      FHIR_SERVER_ADDRESS: ${FHIR_SERVER_ADDRESS_DEMO}
       FHIR_SERVER_USERNAME: ${FHIR_SERVER_USERNAME}
       FHIR_SERVER_PASSWORD: ${FHIR_SERVER_PASSWORD}
       REQUESTS_CA_BUNDLE: ${REQUESTS_CA_BUNDLE}
