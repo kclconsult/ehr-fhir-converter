@@ -162,7 +162,7 @@ docker-compose up -d
 docker-compose up --scale webapp-queue=0 rabbit=0
 ```
 
-Different docker-compose files exist to accomodate different service configurations.
+Different docker-compose files exist to accommodate different service configurations.
 
 ## Built With
 
