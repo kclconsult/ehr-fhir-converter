@@ -17,12 +17,14 @@ services:
       # Gateway of fhir_network. Acts as entry point into network like a docker machine hostname.
       romanova: 172.20.0.1
     tty: true
+    restart: unless-stopped
 
   rabbit:
     image: "rabbitmq:3-management"
     hostname: "rabbit"
     volumes:
       - ehr_data_volume:/var/lib/rabbitmq
+    restart: unless-stopped
 
 volumes:
   ehr_data_volume:
